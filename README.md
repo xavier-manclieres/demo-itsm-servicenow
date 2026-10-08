@@ -1,4 +1,4 @@
-# itsm-rex-automation
+# demo-itsm-servicenow
 
 Détection d'incidents récurrents et rédaction de REX assistée, en **infrastructure et workflows as code**.
 
