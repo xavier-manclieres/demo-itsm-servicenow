@@ -1,0 +1,273 @@
+{
+  "name": "Démo ITSM — WF1b Création du problème",
+  "nodes": [
+    {
+      "id": "b5bd4209-5824-4b8d-88c7-baec86bb8ae7",
+      "name": "Candidat validé",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "triggerField": "Modifié le",
+        "additionalFields": {
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut",
+          "formula": "{Statut}='Validé'"
+        }
+      }
+    },
+    {
+      "id": "cb7574b1-749a-4366-9ef0-91b8d6f432d2",
+      "name": "Créer le problème",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "tableRecord",
+        "operation": "create",
+        "authentication": "basicAuth",
+        "tableName": "problem",
+        "dataToSend": "columns",
+        "fieldsToSend": {
+          "field": [
+            {
+              "column": "short_description",
+              "value": "={{ $json.fields['Titre proposé'] }}"
+            },
+            {
+              "column": "description",
+              "value": "={{ $json.fields['Hypothèse'] }}\n\nIncidents rattachés : {{ $json.fields['Incidents'] }}\n\nCréé par la démo ITSM après validation humaine dans Airtable."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b510ce9c-072e-4e2d-adc0-56828d10d127",
+      "name": "Un élément par incident",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Pour chaque problème créé, produit un élément par incident à rattacher.\nconst out = [];\n$input.all().forEach((p, i) => {\n  const c = $('Candidat validé').itemMatching(i).json;\n  const f = c.fields || c;\n  const ids = String(f['IDs incidents'] || '')\n    .split(',')\n    .map((s) => s.trim())\n    .filter(Boolean);\n  for (const incidentId of ids) {\n    out.push({ json: {\n      incidentId,\n      problemId: p.json.sys_id,\n      problemNumber: p.json.number,\n      recordId: c.id,\n    }});\n  }\n});\nreturn out;"
+      }
+    },
+    {
+      "id": "bc497857-e4cd-48b9-8765-e1d19b0d7dd9",
+      "name": "Rattacher l'incident",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "tableRecord",
+        "operation": "update",
+        "authentication": "basicAuth",
+        "tableName": "incident",
+        "id": "={{ $json.incidentId }}",
+        "dataToSend": "columns",
+        "fieldsToSend": {
+          "field": [
+            {
+              "column": "problem_id",
+              "value": "={{ $json.problemId }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "17a3af80-1f1d-480e-b6fe-ae8667121985",
+      "name": "Un élément par candidat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Une fois tous les incidents rattachés, un seul élément par candidat\n// pour mettre à jour Airtable (statut Créé + numéro du problème).\nconst vus = new Map();\nfor (const { json: r } of $('Un élément par incident').all()) {\n  if (!vus.has(r.recordId)) {\n    vus.set(r.recordId, { recordId: r.recordId, problemNumber: r.problemNumber, nbRattaches: 0 });\n  }\n  vus.get(r.recordId).nbRattaches += 1;\n}\nreturn [...vus.values()].map((json) => ({ json }));"
+      }
+    },
+    {
+      "id": "cfb6675d-5646-48ac-9da0-a28efede837a",
+      "name": "Passer le candidat à Créé",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "update",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $json.recordId }}",
+            "Statut": "Créé",
+            "Problème": "={{ $json.problemNumber }}"
+          },
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Problème",
+              "displayName": "Problème",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "a3ceeff8-538c-44cb-b5f1-1fa4762c6232",
+      "name": "Note WF1b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF1b — Création du problème\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage chaque minute sur « Modifié le »).\n\n1. Crée le problème dans ServiceNow (titre et hypothèse validés).\n2. Rattache chaque incident du groupe au problème (`problem_id`).\n3. Passe le candidat à « Créé » avec le numéro PRB, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans ServiceNow sans validation humaine.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Candidat validé": {
+      "main": [
+        [
+          {
+            "node": "Créer le problème",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer le problème": {
+      "main": [
+        [
+          {
+            "node": "Un élément par incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un élément par incident": {
+      "main": [
+        [
+          {
+            "node": "Rattacher l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rattacher l'incident": {
+      "main": [
+        [
+          {
+            "node": "Un élément par candidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un élément par candidat": {
+      "main": [
+        [
+          {
+            "node": "Passer le candidat à Créé",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

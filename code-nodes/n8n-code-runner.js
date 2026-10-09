@@ -18,7 +18,7 @@ function executer(jsCode, { input = [], noeuds = {} } = {}) {
   const $ = (nom) => {
     if (!(nom in noeuds)) throw new Error(`Nœud « ${nom} » non fourni au test`);
     const items = enItems(noeuds[nom]);
-    return { all: () => items, first: () => items[0], item: items[0] };
+    return { all: () => items, first: () => items[0], item: items[0], itemMatching: (i) => items[i] };
   };
   const fn = new Function('$input', '$', `"use strict";\n${jsCode}`);
   return fn($input, $).map((i) => i.json);
