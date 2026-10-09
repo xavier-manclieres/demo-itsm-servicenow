@@ -1,0 +1,204 @@
+{
+  "name": "Démo ITSM — WF3 Indicateurs pour Power BI",
+  "nodes": [
+    {
+      "id": "6d5f4836-9981-41a7-99e7-d5aa76ec3537",
+      "name": "Demande de Power BI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "kpi",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode"
+      },
+      "webhookId": "14975e6b-bab5-424c-ac5c-65b1ba03d61b"
+    },
+    {
+      "id": "ac407981-3780-4972-b8fb-982b88f64b7e",
+      "name": "Lire les candidats",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "search",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "Signature",
+            "CI",
+            "Nb incidents",
+            "Statut",
+            "Problème",
+            "Modifié le"
+          ]
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d7ee2932-e6aa-4c23-8d2c-0f7118b0c5e9",
+      "name": "Lire les REX",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "search",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "Incident",
+            "Titre",
+            "Durée (min)",
+            "Statut",
+            "Modifié le"
+          ]
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "99725159-2f8b-4b77-a088-4c70937792a5",
+      "name": "Calculer les indicateurs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Indicateurs pour Power BI, calculés à partir des deux tables Airtable.\n// Seules des métadonnées sortent : ni texte de REX, ni hypothèse, ni sys_id.\nconst lignes = (nom) => $(nom).all().map((i) => i.json).filter((r) => r && r.id);\nconst candidats = lignes('Lire les candidats');\nconst rex = lignes('Lire les REX');\n\nconst compter = (liste, ...statuts) => liste.filter((r) => statuts.includes(r.Statut)).length;\nconst moyenne = (valeurs) => valeurs.length\n  ? Math.round((valeurs.reduce((a, b) => a + b, 0) / valeurs.length) * 10) / 10\n  : null;\nconst nombre = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);\n\n// Un candidat « Créé » a d'abord été validé : il compte parmi les validés.\nconst valides = compter(candidats, 'Validé', 'Créé');\nconst rejetes = compter(candidats, 'Rejeté');\n\n// Délai de relecture : de la création du brouillon à sa dernière modification,\n// qui pour un REX publié est le passage à « Publié » par WF2b.\nconst delais = rex\n  .filter((r) => r.Statut === 'Publié' && r.createdTime && r['Modifié le'])\n  .map((r) => (new Date(r['Modifié le']) - new Date(r.createdTime)) / 3600000)\n  .filter((h) => h >= 0);\n\nconst durees = rex.map((r) => nombre(r['Durée (min)'])).filter((d) => d !== null);\n\nconst synthese = {\n  problemes_proposes: candidats.length,\n  problemes_a_trier: compter(candidats, 'À trier'),\n  problemes_valides: valides,\n  problemes_rejetes: rejetes,\n  problemes_crees: compter(candidats, 'Créé'),\n  taux_validation_pct: valides + rejetes ? Math.round((valides / (valides + rejetes)) * 100) : null,\n  incidents_regroupes: candidats.reduce((s, r) => s + (nombre(r['Nb incidents']) || 0), 0),\n  rex_rediges: rex.length,\n  rex_a_relire: compter(rex, 'À relire'),\n  rex_publies: compter(rex, 'Publié'),\n  delai_relecture_moyen_h: moyenne(delais),\n  mttr_p1_min: moyenne(durees),\n};\n\n// Tables de détail, une ligne par enregistrement, pour les visuels Power BI.\nconst problemes = candidats\n  .map((r) => ({\n    signature: r.Signature || null,\n    ci: r.CI || null,\n    nb_incidents: nombre(r['Nb incidents']) || 0,\n    statut: r.Statut || null,\n    probleme: r['Problème'] || null,\n    propose_le: r.createdTime || null,\n  }))\n  .sort((a, b) => b.nb_incidents - a.nb_incidents);\n\nconst rexDetail = rex.map((r) => ({\n  incident: r.Incident || null,\n  titre: r.Titre || null,\n  duree_min: nombre(r['Durée (min)']),\n  statut: r.Statut || null,\n  redige_le: r.createdTime || null,\n}));\n\nreturn [{ json: { genere_le: new Date().toISOString(), synthese, problemes, rex: rexDetail } }];"
+      }
+    },
+    {
+      "id": "ab6870ac-fe1f-428a-9f16-87b4ac85f52c",
+      "name": "Répondre à Power BI",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "75e12d36-80ac-43b2-a900-7d120144dd55",
+      "name": "Note WF3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF3 — Indicateurs pour Power BI\nGET /webhook/kpi, protégé par une clé dans l'en-tête (identifiant « Clé Power BI »).\n\n- Lit les deux tables Airtable (seulement les champs utiles).\n- Renvoie une synthèse (problèmes proposés, validés, rejetés ; REX rédigés, publiés ; délai de relecture ; MTTR des P1) et deux tables de détail.\n- Aucun texte de REX ni hypothèse ne sort.\n\nPower BI : Obtenir des données › Web.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Demande de Power BI": {
+      "main": [
+        [
+          {
+            "node": "Lire les candidats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les candidats": {
+      "main": [
+        [
+          {
+            "node": "Lire les REX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les REX": {
+      "main": [
+        [
+          {
+            "node": "Calculer les indicateurs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer les indicateurs": {
+      "main": [
+        [
+          {
+            "node": "Répondre à Power BI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
