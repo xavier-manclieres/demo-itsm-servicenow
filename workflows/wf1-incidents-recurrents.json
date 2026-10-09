@@ -1,0 +1,541 @@
+{
+  "name": "Démo ITSM — WF1 Incidents récurrents",
+  "nodes": [
+    {
+      "id": "897be0e1-76d3-4c7e-8258-1d48fbfb65c4",
+      "name": "Chaque nuit à 2 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        144
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 2,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "73349e64-4a79-4db6-9f8c-f8912fd67b27",
+      "name": "Lire les candidats existants",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        144
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "search",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "Signature",
+            "Statut"
+          ]
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e93968b5-2861-4763-909b-6f3424e2b491",
+      "name": "Incidents des 30 derniers jours",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        448,
+        144
+      ],
+      "parameters": {
+        "resource": "incident",
+        "operation": "getAll",
+        "authentication": "basicAuth",
+        "returnAll": true,
+        "options": {
+          "sysparm_query": "opened_at>=javascript:gs.daysAgoStart(30)^problem_idISEMPTY",
+          "sysparm_display_value": "true",
+          "sysparm_exclude_reference_link": true,
+          "sysparm_fields": [
+            "sys_id",
+            "number",
+            "short_description",
+            "category",
+            "cmdb_ci",
+            "opened_at"
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "ae818165-fcf1-44c9-8f47-28090bffff77",
+      "name": "Regrouper et comparer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        144
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Regroupe les incidents par CI + catégorie (groupes de 3 ou plus)\n// et repère les signatures déjà présentes dans Airtable.\nconst SEUIL = 3;\n\nconst existants = {};\nfor (const { json: r } of $('Lire les candidats existants').all()) {\n  if (r.Signature) existants[r.Signature] = { id: r.id, statut: r.Statut || '' };\n}\n\nconst nomCi = v => (v && typeof v === 'object') ? (v.display_value || v.value || '') : (v || '');\n\nconst groupes = {};\nfor (const { json: i } of $input.all()) {\n  const ci = nomCi(i.cmdb_ci);\n  if (!ci) continue;\n  const cle = `${ci} | ${i.category}`;\n  (groupes[cle] ||= []).push({ ...i, ci });\n}\n\nreturn Object.entries(groupes)\n  .filter(([, l]) => l.length >= SEUIL)\n  .map(([signature, l]) => ({ json: {\n    signature,\n    ci: l[0].ci,\n    categorie: l[0].category,\n    nb: l.length,\n    incidents: l.map(i => i.number).join(', '),\n    ids: l.map(i => i.sys_id).join(','),\n    descriptions: l.map(i => `${i.number} : ${i.short_description}`).join('\\n'),\n    recordId: existants[signature]?.id || '',\n    statutExistant: existants[signature]?.statut || '',\n  }}));"
+      }
+    },
+    {
+      "id": "654d7848-d179-46b0-af37-1c3a875548d9",
+      "name": "Déjà connu ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        144
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.recordId }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "7c367671-011e-4e48-b607-5962cce6b1ed",
+      "name": "Mettre à jour les compteurs",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "update",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $json.recordId }}",
+            "Nb incidents": "={{ $json.nb }}",
+            "Incidents": "={{ $json.incidents }}",
+            "IDs incidents": "={{ $json.ids }}"
+          },
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nb incidents",
+              "displayName": "Nb incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Incidents",
+              "displayName": "Incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "IDs incidents",
+              "displayName": "IDs incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f07d0030-53b1-4c93-800f-c18b915de689",
+      "name": "Trier avec Claude",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1120,
+        304
+      ],
+      "parameters": {
+        "promptType": "define",
+        "hasOutputParser": true,
+        "text": "=Tu es gestionnaire de problèmes ITIL. Voici {{ $json.nb }} incidents ouverts\nen 30 jours sur le même élément de configuration ({{ $json.ci }},\ncatégorie {{ $json.categorie }}) :\n\n{{ $json.descriptions }}\n\nRéponds avec trois champs :\n- lie : false si ces incidents n'ont visiblement pas de cause commune ;\n- titre : 12 mots maximum, formulé comme un problème ;\n- hypothese : 3 phrases maximum, en signalant ce qui reste à vérifier.\nN'invente aucun fait absent des descriptions."
+      }
+    },
+    {
+      "id": "b71776ec-351d-403b-a297-9b4890da76d0",
+      "name": "Claude (tri)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        1136,
+        528
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-haiku-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 1024,
+          "temperature": 0.2
+        }
+      }
+    },
+    {
+      "id": "83a571bb-cff9-456e-b442-262fcd758a7a",
+      "name": "Format du tri",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        528
+      ],
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{ \"lie\": true, \"titre\": \"Lenteurs récurrentes de l'ERP en fin de mois\", \"hypothese\": \"Saturation probable de la base en période de clôture. À vérifier : charge serveur et traitements batch planifiés.\" }"
+      }
+    },
+    {
+      "id": "e91129e3-2d07-44d1-a1de-1b6c752732a1",
+      "name": "Cause commune ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output.lie }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "e4e4e9bb-68b1-4a08-8adf-85b2148dab4b",
+      "name": "Créer le candidat",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        304
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "create",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Signature": "={{ $('Regrouper et comparer').item.json.signature }}",
+            "CI": "={{ $('Regrouper et comparer').item.json.ci }}",
+            "Nb incidents": "={{ $('Regrouper et comparer').item.json.nb }}",
+            "Incidents": "={{ $('Regrouper et comparer').item.json.incidents }}",
+            "IDs incidents": "={{ $('Regrouper et comparer').item.json.ids }}",
+            "Titre proposé": "={{ $json.output.titre }}",
+            "Hypothèse": "={{ $json.output.hypothese }}",
+            "Statut": "À trier"
+          },
+          "schema": [
+            {
+              "id": "Signature",
+              "displayName": "Signature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CI",
+              "displayName": "CI",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nb incidents",
+              "displayName": "Nb incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Incidents",
+              "displayName": "Incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "IDs incidents",
+              "displayName": "IDs incidents",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Titre proposé",
+              "displayName": "Titre proposé",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hypothèse",
+              "displayName": "Hypothèse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "a72a6222-1a41-47f0-9b39-49e6caedef7c",
+      "name": "Note WF1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF1 — Incidents récurrents\nChaque nuit à 2 h : lit les incidents des 30 derniers jours sans problème rattaché, les regroupe par CI + catégorie (3 ou plus).\n\n- Groupe déjà connu : seuls les compteurs sont mis à jour, le statut décidé n'est jamais touché, Claude n'est pas rappelé.\n- Nouveau groupe : Claude juge la cause commune, propose titre et hypothèse ; le candidat arrive en « À trier ».\n\nÀ brancher : identifiant **ServiceNow PDI** ; jeton Airtable ayant accès à la base Démo ITSM.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Chaque nuit à 2 h": {
+      "main": [
+        [
+          {
+            "node": "Lire les candidats existants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les candidats existants": {
+      "main": [
+        [
+          {
+            "node": "Incidents des 30 derniers jours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incidents des 30 derniers jours": {
+      "main": [
+        [
+          {
+            "node": "Regrouper et comparer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regrouper et comparer": {
+      "main": [
+        [
+          {
+            "node": "Déjà connu ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Déjà connu ?": {
+      "main": [
+        [
+          {
+            "node": "Mettre à jour les compteurs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trier avec Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trier avec Claude": {
+      "main": [
+        [
+          {
+            "node": "Cause commune ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (tri)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trier avec Claude",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format du tri": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Trier avec Claude",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cause commune ?": {
+      "main": [
+        [
+          {
+            "node": "Créer le candidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

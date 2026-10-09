@@ -1,0 +1,97 @@
+{
+  "name": "Démo ITSM — WF0 Jeu de données",
+  "nodes": [
+    {
+      "id": "c10eb7e6-bb8f-4143-9d32-051c31452eb6",
+      "name": "Lancer WF0",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "36b9f6d3-1129-4646-ba74-63463d73f8cd",
+      "name": "Générer 22 incidents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Jeu de données de démo : 3 familles d'incidents récurrents + 4 incidents de bruit.\n// À FAIRE quand l'instance ServiceNow est prête : remplacer les 3 identifiants\n// par les sys_id de trois CI existants (table cmdb_ci).\nconst CI = {\n  erp: 'SYS_ID_CI_1',\n  partage: 'SYS_ID_CI_2',\n  mail: 'SYS_ID_CI_3',\n};\n\nconst familles = [\n  { ci: CI.erp, cat: 'software', textes: ['Lenteurs ERP en fin de mois',\n    'ERP très lent sur la saisie des commandes', 'Temps de réponse ERP dégradé'] },\n  { ci: CI.partage, cat: 'hardware', textes: ['Partage réseau inaccessible',\n    'Accès refusé au partage réseau', 'Partage réseau déconnecté'] },\n  { ci: CI.mail, cat: 'network', textes: [\"Mails bloqués en file d'attente\",\n    'Mails non distribués', 'Retards de distribution des mails'] },\n];\nconst bruit = ['Imprimante en panne au 2e étage', 'Mot de passe expiré',\n  'Écran noir au démarrage', 'Licence Office à renouveler'];\n\nconst out = [];\nfor (const f of familles) {\n  for (let i = 0; i < 6; i++) {\n    out.push({ json: { short_description: f.textes[i % 3], category: f.cat, cmdb_ci: f.ci } });\n  }\n}\nfor (const t of bruit) out.push({ json: { short_description: t, category: 'inquiry', cmdb_ci: '' } });\nreturn out;"
+      }
+    },
+    {
+      "id": "dea602c4-afeb-4f81-aed0-189df27823a0",
+      "name": "Créer l'incident",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "incident",
+        "operation": "create",
+        "authentication": "basicAuth",
+        "short_description": "={{ $json.short_description }}",
+        "additionalFields": {
+          "category": "={{ $json.category }}",
+          "cmdb_ci": "={{ $json.cmdb_ci ? [$json.cmdb_ci] : [] }}",
+          "description": "Incident fictif généré par WF0 (démo ITSM).",
+          "impact": 3,
+          "urgency": 3
+        }
+      }
+    },
+    {
+      "id": "47bd6874-b7fb-42d3-af96-0af718fe1f93",
+      "name": "Note WF0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF0 — Jeu de données\nLancé une seule fois, à la main.\n\n1. Créer l'identifiant **ServiceNow PDI** (Basic Auth : admin + mot de passe de l'instance).\n2. Remplacer les 3 `SYS_ID_CI_x` du nœud Code par des sys_id de CI existants.\n3. Lancer : 22 incidents fictifs (impact et urgence 3 = priorité basse).",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Lancer WF0": {
+      "main": [
+        [
+          {
+            "node": "Générer 22 incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Générer 22 incidents": {
+      "main": [
+        [
+          {
+            "node": "Créer l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
