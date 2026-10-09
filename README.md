@@ -1,5 +1,7 @@
 # demo-itsm-servicenow
 
+[![CI](https://github.com/xavier-manclieres/demo-itsm-servicenow/actions/workflows/ci.yml/badge.svg)](https://github.com/xavier-manclieres/demo-itsm-servicenow/actions/workflows/ci.yml)
+
 Détection d'incidents récurrents et rédaction de REX assistée, en **infrastructure et workflows as code**.
 
 Chaque nuit, n8n repère dans ServiceNow les incidents qui se répètent et propose des problèmes à valider. Quand un incident critique (P1) est résolu, il rédige un brouillon de REX à relire. Airtable sert d'espace de validation, Claude de rédacteur, Power BI de restitution.
