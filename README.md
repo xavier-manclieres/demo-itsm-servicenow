@@ -38,7 +38,7 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 
 ## Démarrage
 
-Prérequis : Docker, Node.js 20 ou plus, Git.
+Prérequis : Docker, Node.js 22 ou plus, Git.
 
 ```bash
 cp .env.example .env        # puis renseigner les valeurs

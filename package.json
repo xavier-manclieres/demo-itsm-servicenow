@@ -1,5 +1,5 @@
 {
-  "name": "itsm-rex-automation",
+  "name": "demo-itsm-servicenow",
   "version": "0.1.0",
   "description": "Détection d'incidents récurrents et REX assistés par Claude, workflows n8n as code",
   "private": true,
@@ -9,6 +9,6 @@
     "validate:json": "node scripts/validate-json.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
