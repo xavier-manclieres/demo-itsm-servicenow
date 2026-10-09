@@ -14,7 +14,9 @@
         "pollTimes": {
           "item": [
             {
-              "mode": "everyMinute"
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 5
             }
           ]
         },
@@ -134,7 +136,7 @@
         -50
       ],
       "parameters": {
-        "content": "## WF2b — Publication du REX\nDéclenché quand un brouillon passe à « Validé » dans Airtable.\n\n1. Ajoute le REX relu en note de travail de l'incident dans ServiceNow.\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nVariante : publier un article de la base de connaissances.",
+        "content": "## WF2b — Publication du REX\nDéclenché quand un brouillon passe à « Validé » dans Airtable (sondage toutes les 5 minutes, pour ménager le quota d'API Airtable).\n\n1. Ajoute le REX relu en note de travail de l'incident dans ServiceNow.\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nVariante : publier un article de la base de connaissances.",
         "color": 4,
         "width": 300,
         "height": 200

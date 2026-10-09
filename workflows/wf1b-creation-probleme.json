@@ -14,7 +14,9 @@
         "pollTimes": {
           "item": [
             {
-              "mode": "everyMinute"
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 5
             }
           ]
         },
@@ -203,7 +205,7 @@
         -50
       ],
       "parameters": {
-        "content": "## WF1b — Création du problème\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage chaque minute sur « Modifié le »).\n\n1. Crée le problème dans ServiceNow (titre et hypothèse validés).\n2. Rattache chaque incident du groupe au problème (`problem_id`).\n3. Passe le candidat à « Créé » avec le numéro PRB, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans ServiceNow sans validation humaine.",
+        "content": "## WF1b — Création du problème\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage toutes les 5 minutes sur « Modifié le », pour ménager le quota d'API Airtable).\n\n1. Crée le problème dans ServiceNow (titre et hypothèse validés).\n2. Rattache chaque incident du groupe au problème (`problem_id`).\n3. Passe le candidat à « Créé » avec le numéro PRB, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans ServiceNow sans validation humaine.",
         "color": 4,
         "width": 300,
         "height": 200

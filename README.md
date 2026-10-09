@@ -21,9 +21,9 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 |---|---|---|---|
 | WF0 | Jeu de données de démo | manuel, une fois | construit, testé |
 | WF1 | Détection des incidents récurrents | chaque nuit à 2 h | construit, testé |
-| WF1b | Création du problème dans ServiceNow | candidat passé à « Validé » | construit, testé |
+| WF1b | Création du problème dans ServiceNow | candidat passé à « Validé » (vérifié toutes les 5 min) | construit, testé |
 | WF2 | Brouillon de REX | incident P1 résolu | construit, testé |
-| WF2b | Publication du REX | brouillon passé à « Validé » | construit, testé |
+| WF2b | Publication du REX | brouillon passé à « Validé » (vérifié toutes les 5 min) | construit, testé |
 | WF3 | Indicateurs pour Power BI | actualisation du rapport (GET /webhook/kpi) | construit, testé |
 
 « Testé » signifie testé sur données fictives, en attendant l'instance ServiceNow de développement.
