@@ -1,24 +1,18 @@
-// Logique du nœud Code de WF2 : assemble la chronologie du journal ServiceNow
-// et calcule la durée de l'incident en minutes (dates brutes en UTC).
+// Nœud « Préparer les REX » de WF2, exécuté depuis l'export du workflow.
+const path = require('node:path');
+const { chargerCode, executer } = require('./n8n-code-runner');
 
-const enDate = (s) => new Date(s.replace(' ', 'T') + 'Z');
+const WF2 = path.join(__dirname, '..', 'workflows', 'wf2-brouillon-rex.json');
+const code = chargerCode(WF2, 'Préparer les REX');
 
-function dureeMinutes(ouvert, resolu) {
-  return Math.round((enDate(resolu) - enDate(ouvert)) / 60000);
+// incidents : sortie de « Incidents P1 résolus » (ServiceNow)
+// notes : sortie de « Journal de l'incident » (sys_journal_field)
+// rexExistants : sortie de « Lire les REX existants » (Airtable)
+function preparerRex(incidents, notes = [], rexExistants = []) {
+  return executer(code, {
+    input: notes,
+    noeuds: { 'Incidents P1 résolus': incidents, 'Lire les REX existants': rexExistants },
+  });
 }
 
-function construireChronologie(notes) {
-  return notes
-    .map((n) => `${n.sys_created_on} UTC, ${n.sys_created_by} : ${n.value}`)
-    .join('\n');
-}
-
-function preparerRex(incident, notes) {
-  return {
-    ...incident,
-    chronologie: construireChronologie(notes),
-    duree: dureeMinutes(incident.opened_at, incident.resolved_at),
-  };
-}
-
-module.exports = { dureeMinutes, construireChronologie, preparerRex };
+module.exports = { preparerRex };

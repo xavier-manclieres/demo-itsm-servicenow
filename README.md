@@ -20,8 +20,8 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 | WF0 | Jeu de données de démo | manuel, une fois | construit, testé |
 | WF1 | Détection des incidents récurrents | chaque nuit à 2 h | construit, testé |
 | WF1b | Création du problème dans ServiceNow | candidat passé à « Validé » | construit, testé |
-| WF2 | Brouillon de REX | incident P1 résolu | à venir |
-| WF2b | Publication du REX | brouillon passé à « Validé » | à venir |
+| WF2 | Brouillon de REX | incident P1 résolu | construit, testé |
+| WF2b | Publication du REX | brouillon passé à « Validé » | construit, testé |
 | WF3 | Indicateurs pour Power BI | actualisation du rapport | à venir |
 
 « Testé » signifie testé sur données fictives, en attendant l'instance ServiceNow de développement.
@@ -73,13 +73,14 @@ infra/         docker-compose, déploiement
 
 - Aucun secret dans le dépôt : `.env` est ignoré, seul `.env.example` est versionné.
 - Les exports de workflows ne doivent contenir aucun identifiant (vérifier avant chaque commit).
+- Avant tout envoi à Claude, WF2 masque les adresses IP et les secrets passés en clair, et remplace les noms des intervenants par « Intervenant 1, 2… ». Un test vérifie qu'aucune de ces données ne fuit.
 - Toutes les données de démo sont fictives.
 
 ## Feuille de route
 
 - [x] Semaines 1-2 : dépôt, CI, base Airtable, WF0 (instance ServiceNow demandée, en liste d'attente)
 - [x] Semaines 3-4 : WF1 et WF1b, tests sur le code réel des nœuds
-- [ ] Semaines 5-6 : WF2, WF2b, WF3, webhook ServiceNow
+- [ ] Semaines 5-6 : WF2 et WF2b (faits), WF3, webhook ServiceNow
 - [ ] Semaines 7-8 : déploiement Ansible, rapport Power BI, post LinkedIn
 
 ## Licence

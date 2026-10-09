@@ -1,0 +1,171 @@
+{
+  "name": "Démo ITSM — WF2b Publication du REX",
+  "nodes": [
+    {
+      "id": "83a50957-9a7d-47f5-a800-c692bd31b0d6",
+      "name": "REX validé",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "triggerField": "Modifié le",
+        "additionalFields": {
+          "fields": "Incident,sys_id,Brouillon,Statut",
+          "formula": "{Statut}='Validé'"
+        }
+      }
+    },
+    {
+      "id": "367426dd-df00-45cd-94bf-9b3e15ae5bd2",
+      "name": "Ajouter le REX à l'incident",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "tableRecord",
+        "operation": "update",
+        "authentication": "basicAuth",
+        "tableName": "incident",
+        "id": "={{ $json.fields['sys_id'] }}",
+        "dataToSend": "columns",
+        "fieldsToSend": {
+          "field": [
+            {
+              "column": "work_notes",
+              "value": "=REX validé (relu par un humain avant publication)\n\n{{ $json.fields['Brouillon'] }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2ed64c1e-e3c6-4822-b2fa-7b0a3ce5a7a5",
+      "name": "Passer le REX à Publié",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "update",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $('REX validé').item.json.id }}",
+            "Statut": "Publié"
+          },
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "ca81adf6-2606-460e-bf32-83598e6308c9",
+      "name": "Note WF2b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF2b — Publication du REX\nDéclenché quand un brouillon passe à « Validé » dans Airtable.\n\n1. Ajoute le REX relu en note de travail de l'incident dans ServiceNow.\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nVariante : publier un article de la base de connaissances.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "REX validé": {
+      "main": [
+        [
+          {
+            "node": "Ajouter le REX à l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ajouter le REX à l'incident": {
+      "main": [
+        [
+          {
+            "node": "Passer le REX à Publié",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
