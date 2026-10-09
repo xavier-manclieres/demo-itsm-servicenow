@@ -55,17 +55,15 @@ npm test                    # tests des nœuds Code
 
 Dans n8n : *Workflows › Import from File*, puis choisir un fichier de `workflows/`. Ensuite :
 
-1. Créer les identifiants **ServiceNow** (Basic Auth), **Airtable** (jeton d'accès), **Anthropic** et, pour WF3, une **clé d'en-tête** (Header Auth, par exemple `X-API-Key`), puis les associer aux nœuds.
+1. Créer les identifiants **ServiceNow** (Basic Auth), **Airtable** (jeton d'accès), **Anthropic** et, pour WF3, un identifiant **Basic Auth** dédié à Power BI, puis les associer aux nœuds.
 2. Remplacer l'identifiant de base Airtable (`app…`) et de table (`tbl…`) par ceux de votre base, construite selon `airtable/schema.md`.
 3. Pour WF0, remplacer les trois `SYS_ID_CI_x` par des sys_id de CI de votre instance.
 
 ### Brancher Power BI
 
-WF3 renvoie un JSON en trois parties : `synthese` (une ligne d'indicateurs), `problemes` et `rex` (une ligne par enregistrement).
+WF3 renvoie un JSON en trois parties : `synthese` (une ligne d'indicateurs), `problemes` et `rex` (une ligne par enregistrement). Le guide pas à pas (requêtes Power Query, mesures DAX, mise en page) est dans [`powerbi/README.md`](powerbi/README.md).
 
-1. Activer WF3 dans n8n.
-2. Dans Power BI Desktop : *Obtenir des données › Web › Avancé*, adresse `https://<votre-n8n>/webhook/kpi`, et ajouter l'en-tête de requête `X-API-Key` avec la clé.
-3. Dans Power Query, développer `synthese` en table d'une ligne, et `problemes` et `rex` en tables de détail.
+Le rapport se construit d'abord sur `powerbi/exemple-kpi.json`, une réponse de WF3 sur données fictives, produite par le vrai code du nœud (un test vérifie qu'elle reste à jour). On bascule ensuite sur l'adresse de WF3 en changeant une seule ligne.
 
 | Indicateur | Calcul |
 |---|---|
@@ -82,6 +80,7 @@ code-nodes/    JavaScript des nœuds Code + tests
 prompts/       prompts du tri et du REX
 servicenow/    Business Rule, jeu de données
 airtable/      schéma des tables
+powerbi/       données d'exemple et guide du rapport
 infra/         docker-compose, déploiement
 .github/       CI
 ```
@@ -91,7 +90,7 @@ infra/         docker-compose, déploiement
 - Aucun secret dans le dépôt : `.env` est ignoré, seul `.env.example` est versionné.
 - Les exports de workflows ne doivent contenir aucun identifiant (vérifier avant chaque commit).
 - Avant tout envoi à Claude, WF2 masque les adresses IP et les secrets passés en clair, et remplace les noms des intervenants par « Intervenant 1, 2… ». Un test vérifie qu'aucune de ces données ne fuit.
-- WF3 n'expose que des comptes, des durées et des statuts : ni texte de REX, ni hypothèse, ni sys_id. Son adresse est protégée par une clé d'en-tête, et un test vérifie l'absence de fuite.
+- WF3 n'expose que des comptes, des durées et des statuts : ni texte de REX, ni hypothèse, ni sys_id. Son adresse est protégée par un identifiant Basic Auth que Power BI garde dans son coffre : il n'apparaît jamais dans le code du rapport versionné. Un test vérifie l'absence de fuite.
 - Toutes les données de démo sont fictives.
 
 ## Feuille de route

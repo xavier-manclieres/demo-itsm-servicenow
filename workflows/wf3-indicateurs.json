@@ -13,7 +13,7 @@
       "parameters": {
         "httpMethod": "GET",
         "path": "kpi",
-        "authentication": "headerAuth",
+        "authentication": "basicAuth",
         "responseMode": "responseNode"
       },
       "webhookId": "14975e6b-bab5-424c-ac5c-65b1ba03d61b"
@@ -145,7 +145,7 @@
         -50
       ],
       "parameters": {
-        "content": "## WF3 — Indicateurs pour Power BI\nGET /webhook/kpi, protégé par une clé dans l'en-tête (identifiant « Clé Power BI »).\n\n- Lit les deux tables Airtable (seulement les champs utiles).\n- Renvoie une synthèse (problèmes proposés, validés, rejetés ; REX rédigés, publiés ; délai de relecture ; MTTR des P1) et deux tables de détail.\n- Aucun texte de REX ni hypothèse ne sort.\n\nPower BI : Obtenir des données › Web.",
+        "content": "## WF3 — Indicateurs pour Power BI\nGET /webhook/kpi, protégé par un identifiant Basic Auth dédié à Power BI (Power BI le garde dans son coffre, jamais dans le code du rapport).\n\n- Lit les deux tables Airtable (seulement les champs utiles).\n- Renvoie une synthèse (problèmes proposés, validés, rejetés ; REX rédigés, publiés ; délai de relecture ; MTTR des P1) et deux tables de détail.\n- Aucun texte de REX ni hypothèse ne sort.\n\nPower BI : voir powerbi/README.md du dépôt.",
         "color": 4,
         "width": 300,
         "height": 200

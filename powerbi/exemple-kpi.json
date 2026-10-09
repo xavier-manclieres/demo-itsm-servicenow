@@ -1,0 +1,199 @@
+{
+  "genere_le": "2026-10-09T21:45:00.000Z",
+  "synthese": {
+    "problemes_proposes": 10,
+    "problemes_a_trier": 2,
+    "problemes_valides": 6,
+    "problemes_rejetes": 2,
+    "problemes_crees": 5,
+    "taux_validation_pct": 75,
+    "incidents_regroupes": 54,
+    "rex_rediges": 14,
+    "rex_a_relire": 3,
+    "rex_publies": 10,
+    "delai_relecture_moyen_h": 12.5,
+    "mttr_p1_min": 97.1
+  },
+  "problemes": [
+    {
+      "signature": "ERP-PROD|software",
+      "ci": "ERP-PROD",
+      "nb_incidents": 9,
+      "statut": "Créé",
+      "probleme": "PRB0040001",
+      "propose_le": "2026-08-18T02:00:00.000Z"
+    },
+    {
+      "signature": "DB-ORA-01|database",
+      "ci": "DB-ORA-01",
+      "nb_incidents": 8,
+      "statut": "Créé",
+      "probleme": "PRB0040005",
+      "propose_le": "2026-09-22T02:00:00.000Z"
+    },
+    {
+      "signature": "NAS-FICHIERS|hardware",
+      "ci": "NAS-FICHIERS",
+      "nb_incidents": 7,
+      "statut": "Créé",
+      "probleme": "PRB0040002",
+      "propose_le": "2026-08-25T02:00:00.000Z"
+    },
+    {
+      "signature": "MAIL-RELAIS|network",
+      "ci": "MAIL-RELAIS",
+      "nb_incidents": 6,
+      "statut": "Créé",
+      "probleme": "PRB0040003",
+      "propose_le": "2026-09-01T02:00:00.000Z"
+    },
+    {
+      "signature": "VPN-GW|network",
+      "ci": "VPN-GW",
+      "nb_incidents": 5,
+      "statut": "Créé",
+      "probleme": "PRB0040004",
+      "propose_le": "2026-09-10T02:00:00.000Z"
+    },
+    {
+      "signature": "CITRIX-FARM|software",
+      "ci": "CITRIX-FARM",
+      "nb_incidents": 5,
+      "statut": "Validé",
+      "probleme": null,
+      "propose_le": "2026-10-06T02:00:00.000Z"
+    },
+    {
+      "signature": "IMPRESSION-SRV|hardware",
+      "ci": "IMPRESSION-SRV",
+      "nb_incidents": 4,
+      "statut": "Rejeté",
+      "probleme": null,
+      "propose_le": "2026-09-03T02:00:00.000Z"
+    },
+    {
+      "signature": "BACKUP-SRV|hardware",
+      "ci": "BACKUP-SRV",
+      "nb_incidents": 4,
+      "statut": "À trier",
+      "probleme": null,
+      "propose_le": "2026-10-07T02:00:00.000Z"
+    },
+    {
+      "signature": "AD-DC01|software",
+      "ci": "AD-DC01",
+      "nb_incidents": 3,
+      "statut": "Rejeté",
+      "probleme": null,
+      "propose_le": "2026-09-15T02:00:00.000Z"
+    },
+    {
+      "signature": "WEB-PORTAIL|software",
+      "ci": "WEB-PORTAIL",
+      "nb_incidents": 3,
+      "statut": "À trier",
+      "probleme": null,
+      "propose_le": "2026-10-09T02:00:00.000Z"
+    }
+  ],
+  "rex": [
+    {
+      "incident": "INC0010412",
+      "titre": "ERP indisponible en fin de mois",
+      "duree_min": 140,
+      "statut": "Publié",
+      "redige_le": "2026-08-19T07:30:00.000Z"
+    },
+    {
+      "incident": "INC0010438",
+      "titre": "Partage réseau inaccessible pour tout le siège",
+      "duree_min": 95,
+      "statut": "Publié",
+      "redige_le": "2026-08-27T13:15:00.000Z"
+    },
+    {
+      "incident": "INC0010455",
+      "titre": "Mails bloqués en file d'attente",
+      "duree_min": 60,
+      "statut": "Publié",
+      "redige_le": "2026-09-02T09:05:00.000Z"
+    },
+    {
+      "incident": "INC0010471",
+      "titre": "Base Oracle de production arrêtée",
+      "duree_min": 210,
+      "statut": "Publié",
+      "redige_le": "2026-09-05T22:40:00.000Z"
+    },
+    {
+      "incident": "INC0010489",
+      "titre": "VPN inaccessible pour les nomades",
+      "duree_min": 45,
+      "statut": "Publié",
+      "redige_le": "2026-09-09T08:20:00.000Z"
+    },
+    {
+      "incident": "INC0010502",
+      "titre": "ERP très lent sur la saisie des commandes",
+      "duree_min": 75,
+      "statut": "Publié",
+      "redige_le": "2026-09-14T10:00:00.000Z"
+    },
+    {
+      "incident": "INC0010517",
+      "titre": "Ferme Citrix saturée",
+      "duree_min": 180,
+      "statut": "Publié",
+      "redige_le": "2026-09-17T15:45:00.000Z"
+    },
+    {
+      "incident": "INC0010533",
+      "titre": "Relais de messagerie en panne",
+      "duree_min": 50,
+      "statut": "Publié",
+      "redige_le": "2026-09-21T06:50:00.000Z"
+    },
+    {
+      "incident": "INC0010548",
+      "titre": "Sauvegardes nocturnes en échec",
+      "duree_min": 120,
+      "statut": "Publié",
+      "redige_le": "2026-09-24T07:10:00.000Z"
+    },
+    {
+      "incident": "INC0010561",
+      "titre": "Portail web inaccessible",
+      "duree_min": 35,
+      "statut": "Publié",
+      "redige_le": "2026-09-29T11:30:00.000Z"
+    },
+    {
+      "incident": "INC0010577",
+      "titre": "Base Oracle très lente",
+      "duree_min": 90,
+      "statut": "Validé",
+      "redige_le": "2026-10-02T16:20:00.000Z"
+    },
+    {
+      "incident": "INC0010590",
+      "titre": "ERP indisponible après mise à jour",
+      "duree_min": 65,
+      "statut": "À relire",
+      "redige_le": "2026-10-06T09:40:00.000Z"
+    },
+    {
+      "incident": "INC0010604",
+      "titre": "Ferme Citrix indisponible",
+      "duree_min": 155,
+      "statut": "À relire",
+      "redige_le": "2026-10-08T14:25:00.000Z"
+    },
+    {
+      "incident": "INC0010619",
+      "titre": "VPN coupé pour tous les utilisateurs",
+      "duree_min": 40,
+      "statut": "À relire",
+      "redige_le": "2026-10-09T10:05:00.000Z"
+    }
+  ]
+}

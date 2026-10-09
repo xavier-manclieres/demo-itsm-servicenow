@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
-    "validate:json": "node scripts/validate-json.js"
+    "validate:json": "node scripts/validate-json.js",
+    "exemple:kpi": "node scripts/generer-exemple-kpi.js"
   },
   "engines": {
     "node": ">=22"
