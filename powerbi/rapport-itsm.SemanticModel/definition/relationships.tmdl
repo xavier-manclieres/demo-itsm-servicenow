@@ -1,0 +1,25 @@
+relationship cfa0e220-b8eb-475b-b2f9-7efa764ce138
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Problemes.propose_le
+	toColumn: LocalDateTable_6c9164f3-9518-4432-b70e-e2dcafb2b05a.Date
+
+relationship 32bf49f6-5234-432c-a4b6-28b7624a29be
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Problemes.jour
+	toColumn: LocalDateTable_c857e4f3-88ec-47e7-afbc-b54e261d7370.Date
+
+relationship c8c2bc90-e3b6-40c5-984c-48953a95455d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: REX.redige_le
+	toColumn: LocalDateTable_f99aa607-9eb6-4a25-a945-aa07d3f268af.Date
+
+relationship 429cd03a-f612-4e6f-a38b-6f362c01dfe6
+	joinOnDateBehavior: datePartOnly
+	fromColumn: REX.jour
+	toColumn: LocalDateTable_71b47e3f-3857-4699-b896-e4e1fdf40553.Date
+
+relationship f185d9f1-f268-4a5d-9402-326cc230819c
+	joinOnDateBehavior: datePartOnly
+	fromColumn: REX.semaine
+	toColumn: LocalDateTable_553d3ace-1e53-4f88-bcd9-7732816b4d28.Date
+

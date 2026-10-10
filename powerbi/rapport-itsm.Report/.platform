@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "rapport-itsm"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "de46a039-97e0-48e3-a8c4-1d89ac313613"
+  }
+}

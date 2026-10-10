@@ -1,0 +1,134 @@
+table Synthese
+	lineageTag: 3b5326a1-609b-4669-8517-4a36edb45407
+
+	column problemes_proposes
+		dataType: int64
+		formatString: 0
+		lineageTag: f3fe2b3b-2fea-4408-b17c-bb7c7014b8f5
+		summarizeBy: sum
+		sourceColumn: problemes_proposes
+
+		annotation SummarizationSetBy = Automatic
+
+	column problemes_a_trier
+		dataType: int64
+		formatString: 0
+		lineageTag: 860810a3-f234-49f7-8274-80a2f096666f
+		summarizeBy: sum
+		sourceColumn: problemes_a_trier
+
+		annotation SummarizationSetBy = Automatic
+
+	column problemes_valides
+		dataType: int64
+		formatString: 0
+		lineageTag: e8c159c2-7a29-4061-a30b-1ee3898b0af9
+		summarizeBy: sum
+		sourceColumn: problemes_valides
+
+		annotation SummarizationSetBy = Automatic
+
+	column problemes_rejetes
+		dataType: int64
+		formatString: 0
+		lineageTag: efd6beda-4d33-4721-a9d6-93f76430d991
+		summarizeBy: sum
+		sourceColumn: problemes_rejetes
+
+		annotation SummarizationSetBy = Automatic
+
+	column problemes_crees
+		dataType: int64
+		formatString: 0
+		lineageTag: c437c3ac-24b0-4a1e-8e85-b3f2b56f9fcb
+		summarizeBy: sum
+		sourceColumn: problemes_crees
+
+		annotation SummarizationSetBy = Automatic
+
+	column taux_validation_pct
+		dataType: double
+		lineageTag: 83161132-31a8-4e8c-9f83-83fb58589a92
+		summarizeBy: sum
+		sourceColumn: taux_validation_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column incidents_regroupes
+		dataType: int64
+		formatString: 0
+		lineageTag: 70af5821-4d15-4212-9d33-110ae05a6e35
+		summarizeBy: sum
+		sourceColumn: incidents_regroupes
+
+		annotation SummarizationSetBy = Automatic
+
+	column rex_rediges
+		dataType: int64
+		formatString: 0
+		lineageTag: bc7fae86-56d0-42e4-a754-d610bd435b78
+		summarizeBy: sum
+		sourceColumn: rex_rediges
+
+		annotation SummarizationSetBy = Automatic
+
+	column rex_a_relire
+		dataType: int64
+		formatString: 0
+		lineageTag: c1dc0b30-be3f-4875-ad9c-2c589c16c19f
+		summarizeBy: sum
+		sourceColumn: rex_a_relire
+
+		annotation SummarizationSetBy = Automatic
+
+	column rex_publies
+		dataType: int64
+		formatString: 0
+		lineageTag: 5e886d0c-d068-48ac-8ee0-45145920228e
+		summarizeBy: sum
+		sourceColumn: rex_publies
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Délai de relecture (h)'
+		dataType: double
+		formatString: 0.0
+		lineageTag: c81fa20c-54f0-4d7a-8755-3b0caa3b3b30
+		summarizeBy: sum
+		sourceColumn: Délai de relecture (h)
+
+		annotation SummarizationSetBy = Automatic
+
+	column mttr_p1_min
+		dataType: double
+		lineageTag: 31d340f9-f8be-4e1f-ace2-4f0b78309eb7
+		summarizeBy: sum
+		sourceColumn: mttr_p1_min
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Synthese = m
+		mode: import
+		source =
+				let
+				    Lignes = Table.FromRecords({KPI[synthese]}),
+				    Typee = Table.TransformColumnTypes(Lignes, {
+				        {"problemes_proposes", Int64.Type}, {"problemes_a_trier", Int64.Type},
+				        {"problemes_valides", Int64.Type}, {"problemes_rejetes", Int64.Type},
+				        {"problemes_crees", Int64.Type}, {"taux_validation_pct", type number},
+				        {"incidents_regroupes", Int64.Type}, {"rex_rediges", Int64.Type},
+				        {"rex_a_relire", Int64.Type}, {"rex_publies", Int64.Type},
+				        {"delai_relecture_moyen_h", type number}, {"mttr_p1_min", type number}
+				    }),
+				    #"Colonnes renommées" = Table.RenameColumns(Typee,{{"delai_relecture_moyen_h", "Délai de relecture (h)"}})
+				in
+				    #"Colonnes renommées"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,11 @@
+expression KPI =
+		let
+		       Source = Json.Document(File.Contents("X:\Projets-GIT\demo-itsm-servicenow\powerbi\exemple-kpi.json"))
+		   in
+		       Source
+	lineageTag: 30dd1cc7-6d36-4d47-8f61-8da6cca5483c
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Record
+

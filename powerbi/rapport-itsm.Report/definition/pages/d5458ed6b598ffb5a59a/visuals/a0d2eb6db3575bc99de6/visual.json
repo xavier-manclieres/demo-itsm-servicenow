@@ -1,0 +1,179 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "a0d2eb6db3575bc99de6",
+  "position": {
+    "x": 959.21760391198052,
+    "y": 245.67237163814181,
+    "z": 2,
+    "height": 618.09290953545235,
+    "width": 960.7823960880196,
+    "tabOrder": 2
+  },
+  "visual": {
+    "visualType": "columnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "semaine"
+                }
+              },
+              "queryRef": "REX.semaine",
+              "nativeQueryRef": "semaine",
+              "active": true
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "statut"
+                }
+              },
+              "queryRef": "REX.statut",
+              "nativeQueryRef": "statut"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "REX"
+                        }
+                      },
+                      "Property": "titre"
+                    }
+                  },
+                  "Function": 5
+                }
+              },
+              "queryRef": "CountNonNull(REX.titre)",
+              "nativeQueryRef": "Nombre de titre"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "REX"
+                  }
+                },
+                "Property": "semaine"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "axisType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Categorical'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'REX rédigés par semaine'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "83af87736336801aef5a",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "semaine"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "a2f832a0e2312875297e",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "REX"
+                  }
+                },
+                "Property": "titre"
+              }
+            },
+            "Function": 5
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "8f3b2b055f108e180a36",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "statut"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

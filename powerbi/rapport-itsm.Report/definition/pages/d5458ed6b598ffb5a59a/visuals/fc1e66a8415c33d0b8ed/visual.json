@@ -1,0 +1,248 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "fc1e66a8415c33d0b8ed",
+  "position": {
+    "x": 0,
+    "y": 0,
+    "z": 0,
+    "height": 188.2958199356913,
+    "width": 1920,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Problemes"
+                    }
+                  },
+                  "Property": "Taux de validation"
+                }
+              },
+              "queryRef": "Problemes.Taux de validation",
+              "nativeQueryRef": "Taux de validation"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Problemes"
+                    }
+                  },
+                  "Property": "Incidents regroupés"
+                }
+              },
+              "queryRef": "Problemes.Incidents regroupés",
+              "nativeQueryRef": "Incidents regroupés"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "REX publiés"
+                }
+              },
+              "queryRef": "REX.REX publiés",
+              "nativeQueryRef": "REX publiés"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "REX à relire"
+                }
+              },
+              "queryRef": "REX.REX à relire",
+              "nativeQueryRef": "REX à relire"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "MTTR P1 (min)"
+                }
+              },
+              "queryRef": "REX.MTTR P1 (min)",
+              "nativeQueryRef": "MTTR P1 (min)"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Synthese"
+                        }
+                      },
+                      "Property": "Délai de relecture (h)"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(Synthese.Délai de relecture (h))",
+              "nativeQueryRef": "Délai de relecture (h)",
+              "displayName": "Délai de relecture (h)"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Problemes"
+                  }
+                },
+                "Property": "Taux de validation"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "''"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "5d937693c2ed1ed4face",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Problemes"
+              }
+            },
+            "Property": "Taux de validation"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "3f12351bb478482e81d7",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Problemes"
+              }
+            },
+            "Property": "Incidents regroupés"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "e364e7309251f5aaa473",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "REX publiés"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "bbfdeb798cb90dd342fa",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "REX à relire"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "0df3fef319568224d878",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "MTTR P1 (min)"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "20d5958c2afef11e3532",
+        "displayName": "Délai de relecture (h)",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Synthese"
+                  }
+                },
+                "Property": "Délai de relecture (h)"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

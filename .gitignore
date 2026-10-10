@@ -22,3 +22,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+powerbi/rapport-itsm.SemanticModel/.pbi/cache.abf
+powerbi/rapport-itsm.SemanticModel/.pbi/localSettings.json
+powerbi/rapport-itsm.Report/.pbi/localSettings.json

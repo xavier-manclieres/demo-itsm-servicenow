@@ -1,0 +1,218 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "146faef7558b54cd1ca2",
+  "position": {
+    "x": 0,
+    "y": 863.76528117359419,
+    "z": 3,
+    "height": 215.94132029339855,
+    "width": 960.7823960880196,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "titre"
+                }
+              },
+              "queryRef": "REX.titre",
+              "nativeQueryRef": "titre"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "redige_le"
+                }
+              },
+              "queryRef": "REX.redige_le",
+              "nativeQueryRef": "redige_le"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "duree_min"
+                }
+              },
+              "queryRef": "Sum(REX.duree_min)",
+              "nativeQueryRef": "duree_min"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "REX"
+                    }
+                  },
+                  "Property": "statut"
+                }
+              },
+              "queryRef": "REX.statut",
+              "nativeQueryRef": "statut"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "REX"
+                  }
+                },
+                "Property": "redige_le"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ]
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'File de relecture'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "e7e3669b0cc2ee28429a",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "titre"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c627d850eb170cbbab8d",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "redige_le"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "fa3070dd44637f59f922",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "statut"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "r",
+              "Entity": "REX",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "r"
+                          }
+                        },
+                        "Property": "statut"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'À relire'"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "a8c7b8226ed080ce80da",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "REX"
+              }
+            },
+            "Property": "duree_min"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

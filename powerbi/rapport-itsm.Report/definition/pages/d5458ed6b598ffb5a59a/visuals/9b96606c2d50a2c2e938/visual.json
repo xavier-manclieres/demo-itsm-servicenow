@@ -1,0 +1,169 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "9b96606c2d50a2c2e938",
+  "position": {
+    "x": 0,
+    "y": 234.718826405868,
+    "z": 1,
+    "height": 629.04645476772623,
+    "width": 960.7823960880196,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "barChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Problemes"
+                    }
+                  },
+                  "Property": "ci"
+                }
+              },
+              "queryRef": "Problemes.ci",
+              "nativeQueryRef": "ci",
+              "active": true
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Problemes"
+                    }
+                  },
+                  "Property": "statut"
+                }
+              },
+              "queryRef": "Problemes.statut",
+              "nativeQueryRef": "Nombre de statut"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Problemes"
+                        }
+                      },
+                      "Property": "nb_incidents"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(Problemes.nb_incidents)",
+              "nativeQueryRef": "nb_incidents"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Aggregation": {
+                "Expression": {
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "Problemes"
+                      }
+                    },
+                    "Property": "nb_incidents"
+                  }
+                },
+                "Function": 0
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Où se concentrent les incidents récurrents'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "65906ea2a25566404a09",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Problemes"
+              }
+            },
+            "Property": "statut"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "0d7ffa163aad6ec154f7",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Problemes"
+                  }
+                },
+                "Property": "nb_incidents"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "28cd5137e2da55f3a192",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Problemes"
+              }
+            },
+            "Property": "ci"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: fr-FR
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["KPI","Synthese","Problemes","REX"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Synthese
+ref table Problemes
+ref table DateTableTemplate_6d23a1b0-c375-4a0a-bbbe-6f0b80648df7
+ref table LocalDateTable_6c9164f3-9518-4432-b70e-e2dcafb2b05a
+ref table LocalDateTable_c857e4f3-88ec-47e7-afbc-b54e261d7370
+ref table REX
+ref table LocalDateTable_f99aa607-9eb6-4a25-a945-aa07d3f268af
+ref table LocalDateTable_71b47e3f-3857-4699-b896-e4e1fdf40553
+ref table LocalDateTable_553d3ace-1e53-4f88-bcd9-7732816b4d28
+
+ref cultureInfo fr-FR
+

@@ -1,0 +1,104 @@
+table REX
+	lineageTag: 32cfc967-f08c-4ff9-9822-8d62166c8f7a
+
+	measure 'REX publiés' = CALCULATE ( COUNTROWS ( REX ), REX[statut] = "Publié" )
+		formatString: 0
+		lineageTag: 27957bd6-4141-4616-a1cc-9a4be538f654
+
+	measure 'REX à relire' = CALCULATE ( COUNTROWS ( REX ), REX[statut] = "À relire" )
+		formatString: 0
+		lineageTag: def6f1fc-614e-4ed6-bdfc-34556bddfc2f
+
+	measure 'MTTR P1 (min)' = AVERAGE ( REX[duree_min] )
+		formatString: 0.0
+		lineageTag: 4dddff04-2a56-4c5b-a5a7-e5f80e65b27b
+
+	column titre
+		dataType: string
+		lineageTag: 60e9b970-50aa-4b26-b490-759843dc3c98
+		summarizeBy: none
+		sourceColumn: titre
+
+		annotation SummarizationSetBy = Automatic
+
+	column duree_min
+		dataType: double
+		lineageTag: bc3d201c-2258-4e2a-86f5-ba55adf30971
+		summarizeBy: sum
+		sourceColumn: duree_min
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column statut
+		dataType: string
+		lineageTag: 57fea562-67f9-4eab-822c-ff37f0b68e73
+		summarizeBy: none
+		sourceColumn: statut
+
+		annotation SummarizationSetBy = Automatic
+
+	column redige_le
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 2c5643b9-a889-4742-b56b-b17cae509f64
+		summarizeBy: none
+		sourceColumn: redige_le
+
+		variation Variation
+			isDefault
+			relationship: c8c2bc90-e3b6-40c5-984c-48953a95455d
+			defaultHierarchy: LocalDateTable_f99aa607-9eb6-4a25-a945-aa07d3f268af.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+	column jour
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 22b25d5a-9b9c-4095-8eb8-aa77eef481ab
+		summarizeBy: none
+		sourceColumn: jour
+
+		variation Variation
+			isDefault
+			relationship: 429cd03a-f612-4e6f-a38b-6f362c01dfe6
+			defaultHierarchy: LocalDateTable_71b47e3f-3857-4699-b896-e4e1fdf40553.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column semaine
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: a83922fd-0201-453c-8d40-b21b878fa159
+		summarizeBy: none
+		sourceColumn: semaine
+
+		variation Variation
+			isDefault
+			relationship: f185d9f1-f268-4a5d-9402-326cc230819c
+			defaultHierarchy: LocalDateTable_553d3ace-1e53-4f88-bcd9-7732816b4d28.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition REX = m
+		mode: import
+		source =
+				let
+				    Lignes = Table.FromRecords(KPI[rex],
+				        {"incident", "titre", "duree_min", "statut", "redige_le"}, MissingField.UseNull),
+				    Typee = Table.TransformColumnTypes(Lignes, {{"duree_min", type number}, {"redige_le", type datetimezone}}),
+				    Jour = Table.AddColumn(Typee, "jour", each Date.From(DateTimeZone.ToLocal([redige_le])), type date),
+				    Semaine = Table.AddColumn(Jour, "semaine", each Date.StartOfWeek([jour], Day.Monday), type date),
+				    #"Colonnes supprimées" = Table.RemoveColumns(Semaine,{"incident"})
+				in
+				    #"Colonnes supprimées"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

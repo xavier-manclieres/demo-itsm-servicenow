@@ -1,0 +1,97 @@
+table Problemes
+	lineageTag: 1e95ba4a-e7d4-4d45-aabf-43226d54ad24
+
+	measure 'Taux de validation' = DIVIDE ( CALCULATE ( COUNTROWS ( Problemes ), Problemes[statut] IN { "Validé", "Créé" } ), CALCULATE ( COUNTROWS ( Problemes ), Problemes[statut] IN { "Validé", "Créé", "Rejeté" } ) )
+		formatString: 0\ %;-0\ %;0\ %
+		lineageTag: 11bbda3b-00ba-4f4f-824f-585ff2daf972
+
+	measure 'Incidents regroupés' = SUM ( Problemes[nb_incidents] )
+		formatString: 0
+		lineageTag: f8ce07c1-0d9e-4e9d-a6dd-1b384d1470f9
+
+	column signature
+		dataType: string
+		lineageTag: ecee4522-bc74-4a7d-b99d-75be9e7a6736
+		summarizeBy: none
+		sourceColumn: signature
+
+		annotation SummarizationSetBy = Automatic
+
+	column ci
+		dataType: string
+		lineageTag: 495fe8fc-e7fe-4c03-928d-e67598c349b1
+		summarizeBy: none
+		sourceColumn: ci
+
+		annotation SummarizationSetBy = Automatic
+
+	column nb_incidents
+		dataType: int64
+		formatString: 0
+		lineageTag: f25367c1-8754-41bf-902c-a5aae254bafc
+		summarizeBy: sum
+		sourceColumn: nb_incidents
+
+		annotation SummarizationSetBy = Automatic
+
+	column statut
+		dataType: string
+		lineageTag: 9b314fe5-b92f-4b19-a35a-3bde3666e475
+		summarizeBy: none
+		sourceColumn: statut
+
+		annotation SummarizationSetBy = Automatic
+
+	column probleme
+		dataType: string
+		lineageTag: 43c17cf4-471e-4cf4-933e-71badb9e68d9
+		summarizeBy: none
+		sourceColumn: probleme
+
+		annotation SummarizationSetBy = Automatic
+
+	column propose_le
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 6abeb63e-ae24-487e-b71d-a5578c741e41
+		summarizeBy: none
+		sourceColumn: propose_le
+
+		variation Variation
+			isDefault
+			relationship: cfa0e220-b8eb-475b-b2f9-7efa764ce138
+			defaultHierarchy: LocalDateTable_6c9164f3-9518-4432-b70e-e2dcafb2b05a.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+	column jour
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 0052aa65-3fe8-45ed-9036-cf7846332ec2
+		summarizeBy: none
+		sourceColumn: jour
+
+		variation Variation
+			isDefault
+			relationship: 32bf49f6-5234-432c-a4b6-28b7624a29be
+			defaultHierarchy: LocalDateTable_c857e4f3-88ec-47e7-afbc-b54e261d7370.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Problemes = m
+		mode: import
+		source =
+				let
+				    Lignes = Table.FromRecords(KPI[problemes],
+				        {"signature", "ci", "nb_incidents", "statut", "probleme", "propose_le"}, MissingField.UseNull),
+				    Typee = Table.TransformColumnTypes(Lignes, {{"nb_incidents", Int64.Type}, {"propose_le", type datetimezone}}),
+				    Jour = Table.AddColumn(Typee, "jour", each Date.From(DateTimeZone.ToLocal([propose_le])), type date)
+				in
+				    Jour
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
