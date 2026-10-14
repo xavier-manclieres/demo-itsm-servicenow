@@ -2,7 +2,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const dossier = path.join(__dirname, '..', 'workflows');
+// Dossiers d'exports : workflows communs + un dossier par outil ITSM.
+const racine = path.join(__dirname, '..');
+const dossiers = ['workflows', 'servicenow/workflows', 'jira/workflows']
+  .map((d) => path.join(racine, d))
+  .filter((d) => fs.existsSync(d));
 const motifsInterdits = [
   /"credentials"\s*:\s*\{\s*"[^"]+"\s*:\s*\{\s*"id"\s*:\s*"[^"]+"/,
   /sk-ant-[A-Za-z0-9_-]{10,}/,
@@ -10,8 +14,11 @@ const motifsInterdits = [
 ];
 
 let erreurs = 0;
-for (const f of fs.readdirSync(dossier).filter((n) => n.endsWith('.json'))) {
-  const contenu = fs.readFileSync(path.join(dossier, f), 'utf8');
+const fichiers = dossiers.flatMap((d) =>
+  fs.readdirSync(d).filter((n) => n.endsWith('.json')).map((n) => path.join(d, n)));
+for (const chemin of fichiers) {
+  const f = path.relative(racine, chemin);
+  const contenu = fs.readFileSync(chemin, 'utf8');
   try {
     JSON.parse(contenu);
   } catch (e) {

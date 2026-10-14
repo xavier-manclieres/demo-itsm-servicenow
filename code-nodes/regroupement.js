@@ -2,7 +2,7 @@
 const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 
-const WF1 = path.join(__dirname, '..', 'workflows', 'wf1-incidents-recurrents.json');
+const WF1 = path.join(__dirname, '..', 'servicenow', 'workflows', 'wf1-incidents-recurrents.json');
 const code = chargerCode(WF1, 'Regrouper et comparer');
 
 // incidents : sortie de « Incidents des 30 derniers jours » (ServiceNow)

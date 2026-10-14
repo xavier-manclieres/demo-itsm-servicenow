@@ -31,9 +31,9 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 ## Ce que le DevOps apporte
 
 - **Infra as code** : n8n et Postgres démarrent avec `docker compose up`.
-- **Workflows as code** : exports JSON dans `workflows/`, sans identifiants, relus par diff.
+- **Workflows as code** : exports JSON sans identifiants, relus par diff. Un dossier par outil ITSM (`servicenow/workflows/`, `jira/workflows/` à venir) et `workflows/` pour ce qui ne dépend d'aucun outil (WF3).
 - **Prompts versionnés** : `prompts/`, chaque changement est un commit.
-- **Tests** : `code-nodes/` exécute le code des nœuds Code **directement depuis les exports** de `workflows/`. Le code testé est exactement celui qui tourne dans n8n, sans copie à maintenir.
+- **Tests** : `code-nodes/` exécute le code des nœuds Code **directement depuis les exports** de workflows. Le code testé est exactement celui qui tourne dans n8n, sans copie à maintenir.
 - **CI** : validation du JSON, tests et recherche de secrets à chaque push.
 
 ## Démarrage
@@ -53,7 +53,7 @@ npm test                    # tests des nœuds Code
 
 ### Importer les workflows
 
-Dans n8n : *Workflows › Import from File*, puis choisir un fichier de `workflows/`. Ensuite :
+Dans n8n : *Workflows › Import from File*, puis choisir un fichier de `servicenow/workflows/` (et `workflows/` pour WF3). Ensuite :
 
 1. Créer les identifiants **ServiceNow** (Basic Auth), **Airtable** (jeton d'accès), **Anthropic** et, pour WF3, un identifiant **Basic Auth** dédié à Power BI, puis les associer aux nœuds.
 2. Remplacer l'identifiant de base Airtable (`app…`) et de table (`tbl…`) par ceux de votre base, construite selon `airtable/schema.md`.
@@ -62,6 +62,8 @@ Dans n8n : *Workflows › Import from File*, puis choisir un fichier de `workflo
 ### Brancher Power BI
 
 WF3 renvoie un JSON en trois parties : `synthese` (une ligne d'indicateurs), `problemes` et `rex` (une ligne par enregistrement). Le guide pas à pas (requêtes Power Query, mesures DAX, mise en page) est dans [`powerbi/README.md`](powerbi/README.md).
+
+![Rapport Power BI sur données fictives](powerbi/rapport%20Power%20BI%202026-10-10%20104811.png)
 
 Le rapport se construit d'abord sur `powerbi/exemple-kpi.json`, une réponse de WF3 sur données fictives, produite par le vrai code du nœud (un test vérifie qu'elle reste à jour). On bascule ensuite sur l'adresse de WF3 en changeant une seule ligne.
 
@@ -75,10 +77,11 @@ Le rapport se construit d'abord sur `powerbi/exemple-kpi.json`, une réponse de 
 ## Arborescence
 
 ```
-workflows/     exports JSON n8n (sans identifiants)
+workflows/     exports JSON communs aux outils ITSM (WF3, indicateurs)
 code-nodes/    JavaScript des nœuds Code + tests
 prompts/       prompts du tri et du REX
-servicenow/    Business Rule, jeu de données
+servicenow/    workflows WF0 à WF2b, Business Rule, jeu de données
+jira/          connecteur Jira Service Management (en cours)
 airtable/      schéma des tables
 powerbi/       données d'exemple et guide du rapport
 infra/         docker-compose, déploiement
@@ -97,8 +100,10 @@ infra/         docker-compose, déploiement
 
 - [x] Semaines 1-2 : dépôt, CI, base Airtable, WF0 (instance ServiceNow demandée, en liste d'attente)
 - [x] Semaines 3-4 : WF1 et WF1b, tests sur le code réel des nœuds
-- [ ] Semaines 5-6 : WF2, WF2b et WF3 (faits), webhook ServiceNow
-- [ ] Semaines 7-8 : déploiement Ansible, rapport Power BI, post LinkedIn
+- [x] Semaines 5-6 : WF2, WF2b et WF3
+- [x] Rapport Power BI (projet `.pbip` versionné, construit sur données fictives)
+- [ ] Webhook ServiceNow (Business Rule) à la place du sondage de WF2
+- [ ] Déploiement Ansible, post LinkedIn
 
 ## Licence
 

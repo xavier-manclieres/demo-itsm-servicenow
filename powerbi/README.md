@@ -1,11 +1,14 @@
 # Rapport Power BI
 
+![Rapport sur données fictives](rapport%20Power%20BI%202026-10-10%20104811.png)
+
 Le rapport lit la réponse de WF3 (`GET /webhook/kpi`). Pour le construire sans attendre l'instance ServiceNow, on part de `exemple-kpi.json` : une réponse de WF3 sur **données fictives** (10 candidats problèmes et 14 REX sur 8 semaines).
 
 | Fichier | Rôle |
 |---|---|
 | `exemple-airtable.json` | Enregistrements Airtable fictifs, tels que n8n les lit |
 | `exemple-kpi.json` | Réponse de WF3 sur ces enregistrements, produite par `npm run exemple:kpi` |
+| `rapport-itsm.pbip` + dossiers `.Report` et `.SemanticModel` | Le rapport, en projet Power BI (fichiers texte) |
 
 `exemple-kpi.json` n'est pas écrit à la main : le script exécute le vrai nœud « Calculer les indicateurs » de WF3. Un test échoue s'il n'est plus à jour, si bien que le rapport est toujours construit sur la forme exacte de la réponse réelle.
 
@@ -37,9 +40,10 @@ let
         {"incidents_regroupes", Int64.Type}, {"rex_rediges", Int64.Type},
         {"rex_a_relire", Int64.Type}, {"rex_publies", Int64.Type},
         {"delai_relecture_moyen_h", type number}, {"mttr_p1_min", type number}
-    })
+    }),
+    Libelle = Table.RenameColumns(Typee, {{"delai_relecture_moyen_h", "Délai de relecture (h)"}})
 in
-    Typee
+    Libelle
 ```
 
 **`Problemes`** : un candidat par ligne.
@@ -91,16 +95,18 @@ MTTR P1 (min) = AVERAGE ( REX[duree_min] )
 
 Mettre *Taux de validation* au format pourcentage. Si Power BI refuse les virgules, c'est qu'il attend les séparateurs français : remplacer `,` par `;` dans les formules, ou choisir les séparateurs standard dans *Fichier › Options et paramètres › Options › Paramètres régionaux*.
 
-Le délai de relecture vient directement de `Synthese[delai_relecture_moyen_h]` : le calculer demande la date de publication, que WF3 n'expose pas ligne par ligne.
+Le délai de relecture vient directement de `Synthese[Délai de relecture (h)]` (colonne renommée dans la requête `Synthese`, pour que le libellé de la carte soit propre) : le calculer demande la date de publication, que WF3 n'expose pas ligne par ligne.
 
 ## 3. Mise en page
 
 Une page, « Vue d'ensemble », lue de haut en bas : les chiffres, puis où ça se concentre, puis ce qui attend une action.
 
-1. **Bandeau de cartes** : Taux de validation, Incidents regroupés, REX publiés, REX à relire, MTTR P1 (min), et `Synthese[delai_relecture_moyen_h]` intitulé « Délai de relecture (h) ».
+1. **Bandeau** : un seul visuel *Carte* à six valeurs : Taux de validation, Incidents regroupés, REX publiés, REX à relire, MTTR P1 (min) et `Synthese[Délai de relecture (h)]`. Titre du visuel désactivé.
 2. **Où se concentrent les incidents récurrents** : *graphique à barres empilées*. Axe Y `Problemes[ci]`, axe X `Problemes[nb_incidents]`, légende `Problemes[statut]`, trié par nombre décroissant.
-3. **REX rédigés par semaine** : *histogramme empilé*. Axe X `REX[semaine]` (type catégoriel), axe Y nombre de `REX[incident]`, légende `REX[statut]`.
-4. **File de relecture** : *tableau* `REX[incident]`, `REX[titre]`, `REX[duree_min]`, `REX[redige_le]`, avec un filtre de visuel `REX[statut]` = « À relire ».
+3. **REX rédigés par semaine** : *histogramme empilé*. Axe X `REX[semaine]` (type catégoriel), axe Y nombre de `REX[titre]`, légende `REX[statut]`.
+4. **File de relecture** : *tableau* `REX[titre]`, `REX[redige_le]`, `REX[duree_min]`, `REX[statut]`, avec un filtre de visuel `REX[statut]` = « À relire » (3 lignes avec l'exemple). Dans les propriétés du champ `duree_min`, choisir *Ne pas synthétiser*.
+
+Cliquer sur une ligne du tableau filtre toute la page (« filtre croisé ») : recliquer dessus, ou dans une zone vide, pour l'annuler. Avant de choisir un type de visuel, cliquer dans une zone vide : sinon Power BI transforme le visuel sélectionné.
 
 Garder une couleur par statut dans tous les visuels, par exemple Créé et Publié en vert, Validé en bleu, À trier et À relire en gris, Rejeté en rouge clair.
 
@@ -121,6 +127,8 @@ Si le rapport affiche ces valeurs, les requêtes et les mesures sont justes. Les
 ## 5. Enregistrer dans le dépôt
 
 *Fichier › Enregistrer sous*, type **Fichiers de projet Power BI (*.pbip)**, dans ce dossier `powerbi/`, sous le nom `rapport-itsm`. Power BI crée des fichiers texte (`rapport-itsm.Report/`, `rapport-itsm.SemanticModel/`), qui se commitent et se relisent par diff comme le reste du dépôt. Le cache local est exclu par le `.gitignore` que Power BI ajoute. Ne pas enregistrer en `.pbix`, un format binaire ignoré par Git ici.
+
+La requête `KPI` contient le chemin du fichier d'exemple sur la machine d'origine (`X:\Projets-GIT\…`). Après un clonage, l'adapter : *Accueil › Transformer les données › KPI › Éditeur avancé*, puis corriger le chemin de `File.Contents`. Les fichiers `.pbi\cache.abf` et `.pbi\localSettings.json` sont exclus par le `.gitignore` du dépôt.
 
 ## 6. Passer aux données réelles
 

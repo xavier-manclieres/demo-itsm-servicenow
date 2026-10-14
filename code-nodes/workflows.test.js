@@ -6,7 +6,7 @@ const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 const { regrouper } = require('./regroupement');
 
-const WF0 = path.join(__dirname, '..', 'workflows', 'wf0-jeu-de-donnees.json');
+const WF0 = path.join(__dirname, '..', 'servicenow', 'workflows', 'wf0-jeu-de-donnees.json');
 const genere = () => executer(chargerCode(WF0, 'Générer 22 incidents'));
 
 test('WF0 génère 22 incidents, dont 4 sans CI', () => {

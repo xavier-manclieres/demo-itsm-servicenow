@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 
-const WF1B = path.join(__dirname, '..', 'workflows', 'wf1b-creation-probleme.json');
+const WF1B = path.join(__dirname, '..', 'servicenow', 'workflows', 'wf1b-creation-probleme.json');
 const parIncident = chargerCode(WF1B, 'Un élément par incident');
 const parCandidat = chargerCode(WF1B, 'Un élément par candidat');
 
