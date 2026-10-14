@@ -1,0 +1,258 @@
+{
+  "name": "Démo ITSM Jira — WF1b Création du problème",
+  "nodes": [
+    {
+      "id": "b5bd4209-5824-4b8d-88c7-baec86bb8ae7",
+      "name": "Candidat validé",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 5
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "triggerField": "Modifié le",
+        "additionalFields": {
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut",
+          "formula": "{Statut}='Validé'"
+        }
+      }
+    },
+    {
+      "id": "cb7574b1-749a-4366-9ef0-91b8d6f432d2",
+      "name": "Créer le problème",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10007\" }, summary: $json.fields[\"Titre proposé\"], labels: [\"demo-itsm\"], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: $json.fields[\"Hypothèse\"] || \"\" }] }, { type: \"paragraph\", content: [{ type: \"text\", text: \"Incidents rattachés : \" + ($json.fields[\"Incidents\"] || \"\") }] }, { type: \"paragraph\", content: [{ type: \"text\", text: \"Créé par la démo ITSM après validation humaine dans Airtable.\" }] }] } } }) }}"
+      }
+    },
+    {
+      "id": "b510ce9c-072e-4e2d-adc0-56828d10d127",
+      "name": "Un élément par incident",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Pour chaque problème créé, produit un élément par incident à rattacher.\n// Jira : la réponse de création renvoie la clé du ticket (IT-83), utilisée comme identifiant et comme numéro.\nconst out = [];\n$input.all().forEach((p, i) => {\n  const c = $('Candidat validé').itemMatching(i).json;\n  const f = c.fields || c;\n  const ids = String(f['IDs incidents'] || '')\n    .split(',')\n    .map((s) => s.trim())\n    .filter(Boolean);\n  for (const incidentId of ids) {\n    out.push({ json: {\n      incidentId,\n      problemId: p.json.key,\n      problemNumber: p.json.key,\n      recordId: c.id,\n    }});\n  }\n});\nreturn out;"
+      }
+    },
+    {
+      "id": "bc497857-e4cd-48b9-8765-e1d19b0d7dd9",
+      "name": "Rattacher l'incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issueLink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: { name: \"Problem/Incident\" }, outwardIssue: { key: $json.incidentId }, inwardIssue: { key: $json.problemId } }) }}"
+      }
+    },
+    {
+      "id": "17a3af80-1f1d-480e-b6fe-ae8667121985",
+      "name": "Un élément par candidat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Une fois tous les incidents rattachés, un seul élément par candidat\n// pour mettre à jour Airtable (statut Créé + numéro du problème).\nconst vus = new Map();\nfor (const { json: r } of $('Un élément par incident').all()) {\n  if (!vus.has(r.recordId)) {\n    vus.set(r.recordId, { recordId: r.recordId, problemNumber: r.problemNumber, nbRattaches: 0 });\n  }\n  vus.get(r.recordId).nbRattaches += 1;\n}\nreturn [...vus.values()].map((json) => ({ json }));"
+      }
+    },
+    {
+      "id": "cfb6675d-5646-48ac-9da0-a28efede837a",
+      "name": "Passer le candidat à Créé",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "update",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblKXCJX3etGVtMxP",
+          "cachedResultName": "Candidats problèmes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $json.recordId }}",
+            "Statut": "Créé",
+            "Problème": "={{ $json.problemNumber }}"
+          },
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Problème",
+              "displayName": "Problème",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "a3ceeff8-538c-44cb-b5f1-1fa4762c6232",
+      "name": "Note WF1b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF1b — Création du problème (Jira)\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage toutes les 5 minutes sur « Modifié le », pour ménager le quota d'API Airtable).\n\n1. Crée le ticket `Problem` dans Jira (titre et hypothèse validés).\n2. Lie chaque incident du groupe au problème (lien « Problem/Incident » : le problème *cause* les incidents).\n3. Passe le candidat à « Créé » avec la clé du problème, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans Jira sans validation humaine.\n\nÀ brancher : identifiant **Jira SW Cloud** ; jeton Airtable.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Candidat validé": {
+      "main": [
+        [
+          {
+            "node": "Créer le problème",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer le problème": {
+      "main": [
+        [
+          {
+            "node": "Un élément par incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un élément par incident": {
+      "main": [
+        [
+          {
+            "node": "Rattacher l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rattacher l'incident": {
+      "main": [
+        [
+          {
+            "node": "Un élément par candidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un élément par candidat": {
+      "main": [
+        [
+          {
+            "node": "Passer le candidat à Créé",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
