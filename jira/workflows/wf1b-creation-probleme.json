@@ -35,7 +35,7 @@
         },
         "triggerField": "Modifié le",
         "additionalFields": {
-          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut",
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut,Modifié le",
           "formula": "{Statut}='Validé'"
         }
       }
