@@ -243,8 +243,7 @@
           "value": "claude-haiku-5-5"
         },
         "options": {
-          "maxTokensToSample": 1024,
-          "temperature": 0.2
+          "maxTokensToSample": 1024
         }
       }
     },

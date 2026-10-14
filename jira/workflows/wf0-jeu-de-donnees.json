@@ -1,0 +1,202 @@
+{
+  "name": "Démo ITSM Jira — WF0 Jeu de données",
+  "nodes": [
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000001",
+      "name": "Lancer WF0",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000007",
+      "name": "Incidents déjà présents ?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/search/jql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jql: \"project = IT AND issuetype = 10003\", fields: [\"summary\"], maxResults: 1 }) }}"
+      }
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000008",
+      "name": "Garde-fou",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Garde-fou : WF0 ne doit tourner qu'une seule fois.\n// Si le projet IT contient déjà des incidents, on s'arrête sans rien créer.\nconst trouves = $input.all().flatMap(({ json }) => json.issues || []);\nif (trouves.length > 0) {\n  throw new Error(`Le projet IT contient déjà des incidents (par exemple ${trouves[0].key}) : WF0 s'arrête pour ne pas créer de doublons. Supprimez-les dans Jira avant de relancer.`);\n}\nreturn [{ json: { ok: true } }];"
+      }
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000002",
+      "name": "Liste des CI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Les 3 CI de la démo, créés comme composants du projet Jira IT.\n// (Un composant déjà existant renvoie une erreur 400 : elle est ignorée, c'est voulu.)\nreturn ['ERP-PROD', 'NAS-FICHIERS', 'MAIL-EXCH-01'].map((name) => ({ json: { name } }));"
+      }
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000003",
+      "name": "Créer le composant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/component",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ name: $json.name, project: \"IT\", description: \"CI de la démo ITSM (créé par WF0)\" }) }}"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000004",
+      "name": "Générer 22 incidents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Jeu de données de démo : 3 familles d'incidents récurrents + 4 incidents de bruit.\n// Le CI est un composant Jira (créé juste avant par le nœud « Créer le composant »).\nconst CI = {\n  erp: 'ERP-PROD',\n  partage: 'NAS-FICHIERS',\n  mail: 'MAIL-EXCH-01',\n};\n\nconst familles = [\n  { ci: CI.erp, cat: 'software', textes: ['Lenteurs ERP en fin de mois',\n    'ERP très lent sur la saisie des commandes', 'Temps de réponse ERP dégradé'] },\n  { ci: CI.partage, cat: 'hardware', textes: ['Partage réseau inaccessible',\n    'Accès refusé au partage réseau', 'Partage réseau déconnecté'] },\n  { ci: CI.mail, cat: 'network', textes: [\"Mails bloqués en file d'attente\",\n    'Mails non distribués', 'Retards de distribution des mails'] },\n];\nconst bruit = ['Imprimante en panne au 2e étage', 'Mot de passe expiré',\n  'Écran noir au démarrage', 'Licence Office à renouveler'];\n\nconst out = [];\nfor (const f of familles) {\n  for (let i = 0; i < 6; i++) {\n    out.push({ json: { summary: f.textes[i % 3], category: f.cat, ci: f.ci } });\n  }\n}\nfor (const t of bruit) out.push({ json: { summary: t, category: 'inquiry', ci: '' } });\nreturn out;"
+      }
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000005",
+      "name": "Créer l'incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10003\" }, summary: $json.summary, labels: [$json.category], components: $json.ci ? [{ name: $json.ci }] : [], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: \"Incident fictif généré par WF0 (démo ITSM).\" }] }] } } }) }}"
+      }
+    },
+    {
+      "id": "a1c0e001-0000-4000-8000-000000000006",
+      "name": "Note WF0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF0 — Jeu de données (Jira)\nLancé une seule fois, à la main.\n\n1. Créer l'identifiant **Jira SW Cloud** (e-mail + jeton d'API personnel).\n2. Lancer : s'arrête si le projet contient déjà des incidents (garde-fou), sinon crée 3 composants (les CI) puis 22 incidents fictifs dans le projet IT.\n\nSi les composants existent déjà, l'erreur 400 est ignorée.",
+        "color": 4,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Lancer WF0": {
+      "main": [
+        [
+          {
+            "node": "Incidents déjà présents ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste des CI": {
+      "main": [
+        [
+          {
+            "node": "Créer le composant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer le composant": {
+      "main": [
+        [
+          {
+            "node": "Générer 22 incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Générer 22 incidents": {
+      "main": [
+        [
+          {
+            "node": "Créer l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incidents déjà présents ?": {
+      "main": [
+        [
+          {
+            "node": "Garde-fou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garde-fou": {
+      "main": [
+        [
+          {
+            "node": "Liste des CI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
