@@ -41,12 +41,25 @@
       }
     },
     {
+      "id": "6ff21cf2-9d9b-4107-8912-a6b728fe4791",
+      "name": "Mettre en forme le REX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Convertit le brouillon validé (Markdown) en HTML pour une note de travail ServiceNow :\n// titres, gras, italique, code, listes à puces et numérotées, tableaux.\n// Le HTML est encadré par [code]…[/code], la balise qui permet à ServiceNow d'afficher\n// du HTML dans le journal. La mention « Statut : brouillon… » est retirée.\n\nconst echapper = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nfunction enLigne(texte) {\n  return echapper(texte)\n    .replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>')\n    .replace(/`([^`]+)`/g, '<code>$1</code>')\n    .replace(/\\*([^*\\s][^*]*)\\*/g, '<em>$1</em>')\n    .replace(/(^|[\\s(])_([^_\\s][^_]*)_(?=$|[\\s.,;:!?)])/g, '$1<em>$2</em>');\n}\n\nconst cellules = (ligne) => ligne.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map((c) => c.trim());\nconst estSeparateur = (ligne) => /^\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?$/.test(ligne.trim());\nconst CELLULE = 'border:1px solid #c9ccd1;padding:4px 8px;text-align:left;vertical-align:top';\n\nfunction versHtml(markdown) {\n  const lignes = String(markdown || '')\n    .replace(/\\r\\n?/g, '\\n')\n    .split('\\n')\n    .filter((l) => !/^\\s*\\**\\s*Statut\\s*:\\s*brouillon/i.test(l));\n  const blocs = [];\n  const puce = /^[-*+]\\s+/;\n  const numero = /^\\d+[.)]\\s+/;\n  const separation = /^(-{3,}|\\*{3,})$/;\n  let i = 0;\n  while (i < lignes.length) {\n    const t = lignes[i].trim();\n    if (t === '' || separation.test(t)) { i += 1; continue; }\n\n    const titre = t.match(/^(#{1,6})\\s+(.*)$/);\n    if (titre) {\n      const niveau = Math.min(titre[1].length + 1, 6);\n      blocs.push(`<h${niveau}>${enLigne(titre[2])}</h${niveau}>`);\n      i += 1;\n      continue;\n    }\n\n    if (t.startsWith('|')) {\n      const rangees = [];\n      while (i < lignes.length && lignes[i].trim().startsWith('|')) {\n        if (!estSeparateur(lignes[i])) rangees.push(cellules(lignes[i]));\n        i += 1;\n      }\n      const largeur = Math.max(...rangees.map((r) => r.length));\n      const html = rangees.map((r, n) => {\n        const balise = n === 0 ? 'th' : 'td';\n        const cases = Array.from({ length: largeur }, (_, k) => `<${balise} style=\"${CELLULE}\">${enLigne(r[k] || '')}</${balise}>`);\n        return `<tr>${cases.join('')}</tr>`;\n      });\n      blocs.push(`<table style=\"border-collapse:collapse\">${html.join('')}</table>`);\n      continue;\n    }\n\n    if (puce.test(t) || numero.test(t)) {\n      const ordonnee = numero.test(t);\n      const motif = ordonnee ? numero : puce;\n      const elements = [];\n      while (i < lignes.length && motif.test(lignes[i].trim())) {\n        elements.push(`<li>${enLigne(lignes[i].trim().replace(motif, ''))}</li>`);\n        i += 1;\n      }\n      const balise = ordonnee ? 'ol' : 'ul';\n      blocs.push(`<${balise}>${elements.join('')}</${balise}>`);\n      continue;\n    }\n\n    // Paragraphe : lignes consécutives réunies, séparées par un retour à la ligne.\n    const contenu = [];\n    while (i < lignes.length) {\n      const l = lignes[i].trim();\n      if (l === '' || /^#{1,6}\\s/.test(l) || l.startsWith('|') || puce.test(l) || numero.test(l) || separation.test(l)) break;\n      contenu.push(enLigne(l));\n      i += 1;\n    }\n    blocs.push(`<p>${contenu.join('<br>')}</p>`);\n  }\n  return blocs.join('');\n}\n\nreturn $input.all().map((item, i) => {\n  const r = item.json;\n  const f = r.fields || r;\n  const entete = '<p><em>REX validé (relu par un humain avant publication)</em></p>';\n  return {\n    json: {\n      recordId: r.id,\n      sysId: f.sys_id,\n      noteDeTravail: `[code]${entete}${versHtml(f.Brouillon)}[/code]`,\n    },\n    pairedItem: { item: i },\n  };\n});"
+      }
+    },
+    {
       "id": "367426dd-df00-45cd-94bf-9b3e15ae5bd2",
       "name": "Ajouter le REX à l'incident",
       "type": "n8n-nodes-base.serviceNow",
       "typeVersion": 1,
       "position": [
-        224,
+        448,
         0
       ],
       "parameters": {
@@ -54,13 +67,13 @@
         "operation": "update",
         "authentication": "oAuth2",
         "tableName": "incident",
-        "id": "={{ $json.fields['sys_id'] }}",
+        "id": "={{ $json.sysId }}",
         "dataToSend": "columns",
         "fieldsToSend": {
           "field": [
             {
               "column": "work_notes",
-              "value": "=REX validé (relu par un humain avant publication)\n\n{{ $json.fields['Brouillon'] }}"
+              "value": "={{ $json.noteDeTravail }}"
             }
           ]
         }
@@ -72,7 +85,7 @@
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 2.2,
       "position": [
-        448,
+        672,
         0
       ],
       "parameters": {
@@ -97,7 +110,7 @@
             "id"
           ],
           "value": {
-            "id": "={{ $('REX validé').item.json.id }}",
+            "id": "={{ $('Mettre en forme le REX').item.json.recordId }}",
             "Statut": "Publié"
           },
           "schema": [
@@ -136,15 +149,26 @@
         -50
       ],
       "parameters": {
-        "content": "## WF2b — Publication du REX\nDéclenché quand un brouillon passe à « Validé » dans Airtable (sondage toutes les 5 minutes, pour ménager le quota d'API Airtable).\n\n1. Ajoute le REX relu en note de travail de l'incident dans ServiceNow.\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nVariante : publier un article de la base de connaissances.",
+        "content": "## WF2b — Publication du REX\nDéclenché quand un brouillon passe à « Validé » dans Airtable (sondage toutes les 5 minutes, pour ménager le quota d'API Airtable).\n\n1. Met en forme le REX relu (titres, gras, listes, tableau, en HTML dans [code]…[/code]) et retire la mention « brouillon ».\n2. L'ajoute en note de travail de l'incident dans ServiceNow.\n3. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nVariante : publier un article de la base de connaissances.",
         "color": 4,
-        "width": 300,
-        "height": 200
+        "width": 360,
+        "height": 260
       }
     }
   ],
   "connections": {
     "REX validé": {
+      "main": [
+        [
+          {
+            "node": "Mettre en forme le REX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre en forme le REX": {
       "main": [
         [
           {
