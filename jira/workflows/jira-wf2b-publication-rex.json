@@ -51,7 +51,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.fields['sys_id'] }}/comment",
+        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $json.fields['sys_id'] }}/comment",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,

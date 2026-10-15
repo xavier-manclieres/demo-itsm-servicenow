@@ -113,3 +113,13 @@ for (const [outil, dossier, prefixe] of [['Jira', 'jira', 'jira'], ['ServiceNow'
     assert.match(declencheur.parameters.additionalFields.fields, /Modifié le/);
   });
 }
+
+// Le dépôt est public : aucune adresse réelle de site Jira dans les exports,
+// seulement l'exemple « votre-site.atlassian.net » à remplacer après import.
+test('Jira : les exports ne contiennent que l\'adresse d\'exemple du site', () => {
+  const dossierJira = path.join(__dirname, '..', 'jira', 'workflows');
+  for (const f of fs.readdirSync(dossierJira).filter((x) => x.endsWith('.json'))) {
+    const sites = fs.readFileSync(path.join(dossierJira, f), 'utf8').match(/[\w-]+\.atlassian\.net/g) || [];
+    for (const site of sites) assert.equal(site, 'votre-site.atlassian.net', `${f} : ${site}`);
+  }
+});

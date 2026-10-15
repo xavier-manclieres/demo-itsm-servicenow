@@ -40,3 +40,4 @@ Les fichiers portent le nom de l'outil en préfixe (`jira-…`, `servicenow-…`
 - Site Jira Cloud gratuit, projet ITSM (3 agents maximum sur le plan gratuit).
 - Type de ticket `Problem` ajouté au schéma de types du projet.
 - Jeton d'API personnel, saisi dans l'identifiant n8n « Jira Software Cloud API » (jamais dans le dépôt).
+- Après import, remplacer `votre-site.atlassian.net` par l'adresse de votre site dans les nœuds HTTP des workflows (l'adresse réelle n'est pas publiée dans le dépôt).

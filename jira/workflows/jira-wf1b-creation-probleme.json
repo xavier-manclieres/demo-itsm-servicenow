@@ -51,7 +51,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "url": "https://votre-site.atlassian.net/rest/api/3/issue",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
@@ -85,7 +85,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issueLink",
+        "url": "https://votre-site.atlassian.net/rest/api/3/issueLink",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,

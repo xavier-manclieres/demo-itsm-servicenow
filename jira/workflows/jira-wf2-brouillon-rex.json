@@ -68,7 +68,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://xavier-itsm.atlassian.net/rest/api/3/search/jql",
+        "url": "https://votre-site.atlassian.net/rest/api/3/search/jql",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,

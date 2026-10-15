@@ -23,7 +23,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "url": "https://votre-site.atlassian.net/rest/api/3/issue",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
@@ -55,7 +55,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.key }}/comment",
+        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $json.key }}/comment",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
@@ -82,7 +82,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $('Créer l\\'incident P1').first().json.key }}/transitions",
+        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $('Créer l\\'incident P1').first().json.key }}/transitions",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi"
       },
@@ -112,7 +112,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.key }}/transitions",
+        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $json.key }}/transitions",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
