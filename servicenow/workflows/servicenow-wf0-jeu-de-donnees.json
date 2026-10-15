@@ -1,0 +1,328 @@
+{
+  "name": "Démo ITSM ServiceNow — WF0 Jeu de données",
+  "nodes": [
+    {
+      "id": "c10eb7e6-bb8f-4143-9d32-051c31452eb6",
+      "name": "Lancer WF0",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000001",
+      "name": "Incidents déjà présents ?",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "authentication": "basicAuth",
+        "resource": "incident",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 1,
+        "options": {
+          "sysparm_fields": [
+            "number"
+          ]
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000002",
+      "name": "Garde-fou",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Garde-fou : WF0 ne doit tourner qu'une seule fois.\n// Si l'instance contient déjà des incidents, on s'arrête sans rien créer.\nconst trouves = $input.all().filter(({ json }) => json.number || json.sys_id);\nif (trouves.length > 0) {\n  const ex = trouves[0].json.number || trouves[0].json.sys_id;\n  throw new Error(`L'instance contient déjà des incidents (par exemple ${ex}) : WF0 s'arrête pour ne pas créer de doublons. Supprimez-les dans ServiceNow avant de relancer.`);\n}\nreturn [{ json: { ok: true } }];"
+      }
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000003",
+      "name": "Liste des CI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Les 3 CI de la démo, créés dans la CMDB (table cmdb_ci_server).\nreturn ['ERP-PROD', 'NAS-FICHIERS', 'MAIL-EXCH-01'].map((name) => ({ json: { name } }));"
+      }
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000004",
+      "name": "Chercher les CI existants",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "authentication": "basicAuth",
+        "resource": "tableRecord",
+        "operation": "getAll",
+        "tableName": "cmdb_ci_server",
+        "returnAll": true,
+        "options": {
+          "sysparm_query": "nameINERP-PROD,NAS-FICHIERS,MAIL-EXCH-01",
+          "sysparm_fields": [
+            "name",
+            "sys_id"
+          ],
+          "sysparm_exclude_reference_link": true
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000005",
+      "name": "CI à créer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Ne crée que les CI absents de la CMDB (relançable sans doublon de CI).\n// Si tous existent déjà, renvoie un seul élément « rien à créer » pour que le flux continue.\nconst existants = new Set($('Chercher les CI existants').all().map(({ json }) => json.name).filter(Boolean));\nconst manquants = $('Liste des CI').all().map(({ json }) => json.name).filter((n) => !existants.has(n));\nif (manquants.length === 0) return [{ json: { aCreer: false } }];\nreturn manquants.map((name) => ({ json: { aCreer: true, name } }));"
+      }
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000006",
+      "name": "CI à créer ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.aCreer }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1c0e003-0000-4000-8000-000000000007",
+      "name": "Créer le CI",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        -96
+      ],
+      "parameters": {
+        "authentication": "basicAuth",
+        "resource": "tableRecord",
+        "operation": "create",
+        "tableName": "cmdb_ci_server",
+        "dataToSend": "columns",
+        "fieldsToSend": {
+          "field": [
+            {
+              "column": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "column": "short_description",
+              "value": "CI de la démo ITSM (créé par WF0)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "36b9f6d3-1129-4646-ba74-63463d73f8cd",
+      "name": "Générer 22 incidents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Jeu de données de démo : 3 familles d'incidents récurrents + 4 incidents de bruit.\n// Les CI viennent de la CMDB : ceux qui existaient déjà (« Chercher les CI existants »)\n// et ceux que « Créer le CI » vient de créer. On les retrouve par leur nom.\nconst sysIds = {};\nfor (const { json } of $('Chercher les CI existants').all()) {\n  if (json.name && json.sys_id) sysIds[json.name] = json.sys_id;\n}\nfor (const { json } of $input.all()) {\n  if (json.name && json.sys_id) sysIds[json.name] = json.sys_id;\n}\nconst trouver = (nom) => {\n  if (!sysIds[nom]) throw new Error(`CI introuvable dans la CMDB : ${nom}`);\n  return sysIds[nom];\n};\nconst CI = {\n  erp: trouver('ERP-PROD'),\n  partage: trouver('NAS-FICHIERS'),\n  mail: trouver('MAIL-EXCH-01'),\n};\n\nconst familles = [\n  { ci: CI.erp, cat: 'software', textes: ['Lenteurs ERP en fin de mois',\n    'ERP très lent sur la saisie des commandes', 'Temps de réponse ERP dégradé'] },\n  { ci: CI.partage, cat: 'hardware', textes: ['Partage réseau inaccessible',\n    'Accès refusé au partage réseau', 'Partage réseau déconnecté'] },\n  { ci: CI.mail, cat: 'network', textes: [\"Mails bloqués en file d'attente\",\n    'Mails non distribués', 'Retards de distribution des mails'] },\n];\nconst bruit = ['Imprimante en panne au 2e étage', 'Mot de passe expiré',\n  'Écran noir au démarrage', 'Licence Office à renouveler'];\n\nconst out = [];\nfor (const f of familles) {\n  for (let i = 0; i < 6; i++) {\n    out.push({ json: { short_description: f.textes[i % 3], category: f.cat, cmdb_ci: f.ci } });\n  }\n}\nfor (const t of bruit) out.push({ json: { short_description: t, category: 'inquiry', cmdb_ci: '' } });\nreturn out;"
+      }
+    },
+    {
+      "id": "dea602c4-afeb-4f81-aed0-189df27823a0",
+      "name": "Créer l'incident",
+      "type": "n8n-nodes-base.serviceNow",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "resource": "incident",
+        "operation": "create",
+        "authentication": "basicAuth",
+        "short_description": "={{ $json.short_description }}",
+        "additionalFields": {
+          "category": "={{ $json.category }}",
+          "cmdb_ci": "={{ $json.cmdb_ci ? [$json.cmdb_ci] : [] }}",
+          "description": "Incident fictif généré par WF0 (démo ITSM).",
+          "impact": 3,
+          "urgency": 3
+        }
+      }
+    },
+    {
+      "id": "47bd6874-b7fb-42d3-af96-0af718fe1f93",
+      "name": "Note WF0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -50,
+        -50
+      ],
+      "parameters": {
+        "content": "## WF0 — Jeu de données (ServiceNow)\nLancé une seule fois, à la main.\n\n1. Créer l'identifiant **ServiceNow PDI** (Basic Auth : admin + mot de passe de l'instance).\n2. Lancer : s'arrête si l'instance contient déjà des incidents (garde-fou), sinon crée les 3 CI absents (ERP-PROD, NAS-FICHIERS, MAIL-EXCH-01) puis 22 incidents fictifs (impact et urgence 3 = priorité basse).",
+        "color": 4,
+        "width": 300,
+        "height": 240
+      }
+    }
+  ],
+  "connections": {
+    "Lancer WF0": {
+      "main": [
+        [
+          {
+            "node": "Incidents déjà présents ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incidents déjà présents ?": {
+      "main": [
+        [
+          {
+            "node": "Garde-fou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garde-fou": {
+      "main": [
+        [
+          {
+            "node": "Liste des CI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste des CI": {
+      "main": [
+        [
+          {
+            "node": "Chercher les CI existants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher les CI existants": {
+      "main": [
+        [
+          {
+            "node": "CI à créer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CI à créer": {
+      "main": [
+        [
+          {
+            "node": "CI à créer ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CI à créer ?": {
+      "main": [
+        [
+          {
+            "node": "Créer le CI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Générer 22 incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer le CI": {
+      "main": [
+        [
+          {
+            "node": "Générer 22 incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Générer 22 incidents": {
+      "main": [
+        [
+          {
+            "node": "Créer l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

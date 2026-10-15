@@ -2,7 +2,7 @@
 const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 
-const WF2 = path.join(__dirname, '..', 'servicenow', 'workflows', 'wf2-brouillon-rex.json');
+const WF2 = path.join(__dirname, '..', 'servicenow', 'workflows', 'servicenow-wf2-brouillon-rex.json');
 const code = chargerCode(WF2, 'Préparer les REX');
 
 // incidents : sortie de « Incidents P1 résolus » (ServiceNow)

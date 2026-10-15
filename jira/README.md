@@ -4,7 +4,9 @@ Même démo que `servicenow/`, avec Jira Service Management (plan gratuit) comme
 Le moteur de détection, Airtable, Claude et Power BI sont communs ; seuls les nœuds qui lisent
 et écrivent dans l'outil ITSM changent.
 
-État : en cours. Les workflows arriveront dans `workflows/` (WF0, WF1, WF1b, WF2, WF2b).
+État : en cours. Disponibles dans `workflows/` : `jira-wf0-jeu-de-donnees`, `jira-wf1-incidents-recurrents`, `jira-wf1b-creation-probleme`. À venir : WF2 et WF2b.
+
+Les fichiers portent le nom de l'outil en préfixe (`jira-…`, `servicenow-…`) et, dans n8n, les workflows s'appellent « Démo ITSM Jira — … » ou « Démo ITSM ServiceNow — … », pour ne jamais confondre les deux.
 
 ## Correspondance avec ServiceNow
 

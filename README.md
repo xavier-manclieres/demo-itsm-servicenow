@@ -31,7 +31,7 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 ## Ce que le DevOps apporte
 
 - **Infra as code** : n8n et Postgres démarrent avec `docker compose up`.
-- **Workflows as code** : exports JSON sans identifiants, relus par diff. Un dossier par outil ITSM (`servicenow/workflows/`, `jira/workflows/` à venir) et `workflows/` pour ce qui ne dépend d'aucun outil (WF3).
+- **Workflows as code** : exports JSON sans identifiants, relus par diff. Un dossier par outil ITSM (`servicenow/workflows/`, `jira/workflows/`) et `workflows/` pour ce qui ne dépend d'aucun outil (WF3).
 - **Prompts versionnés** : `prompts/`, chaque changement est un commit.
 - **Tests** : `code-nodes/` exécute le code des nœuds Code **directement depuis les exports** de workflows. Le code testé est exactement celui qui tourne dans n8n, sans copie à maintenir.
 - **CI** : validation du JSON, tests et recherche de secrets à chaque push.

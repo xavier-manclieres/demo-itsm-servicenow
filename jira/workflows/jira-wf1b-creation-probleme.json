@@ -1,5 +1,5 @@
 {
-  "name": "Démo ITSM ServiceNow — WF1b Création du problème",
+  "name": "Démo ITSM Jira — WF1b Création du problème",
   "nodes": [
     {
       "id": "b5bd4209-5824-4b8d-88c7-baec86bb8ae7",
@@ -35,38 +35,28 @@
         },
         "triggerField": "Modifié le",
         "additionalFields": {
-          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut",
-          "formula": "{Statut}='Validé'"
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut,Modifié le",
+          "formula": "AND({Statut}='Validé', {Problème}='')"
         }
       }
     },
     {
       "id": "cb7574b1-749a-4366-9ef0-91b8d6f432d2",
       "name": "Créer le problème",
-      "type": "n8n-nodes-base.serviceNow",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         224,
         0
       ],
       "parameters": {
-        "resource": "tableRecord",
-        "operation": "create",
-        "authentication": "basicAuth",
-        "tableName": "problem",
-        "dataToSend": "columns",
-        "fieldsToSend": {
-          "field": [
-            {
-              "column": "short_description",
-              "value": "={{ $json.fields['Titre proposé'] }}"
-            },
-            {
-              "column": "description",
-              "value": "={{ $json.fields['Hypothèse'] }}\n\nIncidents rattachés : {{ $json.fields['Incidents'] }}\n\nCréé par la démo ITSM après validation humaine dans Airtable."
-            }
-          ]
-        }
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10007\" }, summary: $json.fields[\"Titre proposé\"], labels: [\"demo-itsm\"], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: $json.fields[\"Hypothèse\"] || \"\" }] }, { type: \"paragraph\", content: [{ type: \"text\", text: \"Incidents rattachés : \" + ($json.fields[\"Incidents\"] || \"\") }] }, { type: \"paragraph\", content: [{ type: \"text\", text: \"Créé par la démo ITSM après validation humaine dans Airtable.\" }] }] } } }) }}"
       }
     },
     {
@@ -81,33 +71,26 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Pour chaque problème créé, produit un élément par incident à rattacher.\nconst out = [];\n$input.all().forEach((p, i) => {\n  const c = $('Candidat validé').itemMatching(i).json;\n  const f = c.fields || c;\n  const ids = String(f['IDs incidents'] || '')\n    .split(',')\n    .map((s) => s.trim())\n    .filter(Boolean);\n  for (const incidentId of ids) {\n    out.push({ json: {\n      incidentId,\n      problemId: p.json.sys_id,\n      problemNumber: p.json.number,\n      recordId: c.id,\n    }});\n  }\n});\nreturn out;"
+        "jsCode": "// Pour chaque problème créé, produit un élément par incident à rattacher.\n// Jira : la réponse de création renvoie la clé du ticket (IT-83), utilisée comme identifiant et comme numéro.\nconst out = [];\n$input.all().forEach((p, i) => {\n  const c = $('Candidat validé').itemMatching(i).json;\n  const f = c.fields || c;\n  const ids = String(f['IDs incidents'] || '')\n    .split(',')\n    .map((s) => s.trim())\n    .filter(Boolean);\n  for (const incidentId of ids) {\n    out.push({ json: {\n      incidentId,\n      problemId: p.json.key,\n      problemNumber: p.json.key,\n      recordId: c.id,\n    }});\n  }\n});\nreturn out;"
       }
     },
     {
       "id": "bc497857-e4cd-48b9-8765-e1d19b0d7dd9",
       "name": "Rattacher l'incident",
-      "type": "n8n-nodes-base.serviceNow",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         672,
         0
       ],
       "parameters": {
-        "resource": "tableRecord",
-        "operation": "update",
-        "authentication": "basicAuth",
-        "tableName": "incident",
-        "id": "={{ $json.incidentId }}",
-        "dataToSend": "columns",
-        "fieldsToSend": {
-          "field": [
-            {
-              "column": "problem_id",
-              "value": "={{ $json.problemId }}"
-            }
-          ]
-        }
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issueLink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: { name: \"Problem/Incident\" }, outwardIssue: { key: $json.incidentId }, inwardIssue: { key: $json.problemId } }) }}"
       }
     },
     {
@@ -205,7 +188,7 @@
         -50
       ],
       "parameters": {
-        "content": "## WF1b — Création du problème\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage toutes les 5 minutes sur « Modifié le », pour ménager le quota d'API Airtable).\n\n1. Crée le problème dans ServiceNow (titre et hypothèse validés).\n2. Rattache chaque incident du groupe au problème (`problem_id`).\n3. Passe le candidat à « Créé » avec le numéro PRB, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans ServiceNow sans validation humaine.",
+        "content": "## WF1b — Création du problème (Jira)\nDéclenché quand un candidat passe à « Validé » dans Airtable (sondage toutes les 5 minutes sur « Modifié le », pour ménager le quota d'API Airtable).\n\n1. Crée le ticket `Problem` dans Jira (titre et hypothèse validés).\n2. Lie chaque incident du groupe au problème (lien « Problem/Incident » : le problème *cause* les incidents).\n3. Passe le candidat à « Créé » avec la clé du problème, ce qui l'empêche d'être retraité.\n\nRien n'est créé dans Jira sans validation humaine.\n\nÀ brancher : identifiant **Jira SW Cloud** ; jeton Airtable.",
         "color": 4,
         "width": 300,
         "height": 200

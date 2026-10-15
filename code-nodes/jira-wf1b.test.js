@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 
-const WF1B = path.join(__dirname, '..', 'jira', 'workflows', 'wf1b-creation-probleme.json');
+const WF1B = path.join(__dirname, '..', 'jira', 'workflows', 'jira-wf1b-creation-probleme.json');
 const parIncident = chargerCode(WF1B, 'Un élément par incident');
 const wf = JSON.parse(require('node:fs').readFileSync(WF1B, 'utf8'));
 const noeud = (nom) => wf.nodes.find((n) => n.name === nom);
@@ -37,4 +37,10 @@ test('le lien utilise le type « Problem/Incident »', () => {
 
 test('aucun nœud ServiceNow dans le workflow Jira', () => {
   assert.equal(wf.nodes.filter((n) => /serviceNow/i.test(n.type)).length, 0);
+});
+
+test('le déclencheur ignore un candidat dont le problème est déjà créé', () => {
+  const formule = noeud('Candidat validé').parameters.additionalFields.formula;
+  assert.match(formule, /\{Statut\}='Validé'/);
+  assert.match(formule, /\{Problème\}=''/);
 });

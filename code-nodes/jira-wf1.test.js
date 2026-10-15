@@ -5,8 +5,8 @@ const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 
 const dossier = path.join(__dirname, '..', 'jira', 'workflows');
-const WF0 = path.join(dossier, 'wf0-jeu-de-donnees.json');
-const WF1 = path.join(dossier, 'wf1-incidents-recurrents.json');
+const WF0 = path.join(dossier, 'jira-wf0-jeu-de-donnees.json');
+const WF1 = path.join(dossier, 'jira-wf1-incidents-recurrents.json');
 const normaliser = (issues) => executer(chargerCode(WF1, 'Normaliser les incidents'), { input: [{ issues }] });
 const regrouper = (incidents) => executer(chargerCode(WF1, 'Regrouper et comparer'),
   { input: incidents, noeuds: { 'Lire les candidats existants': [] } });
