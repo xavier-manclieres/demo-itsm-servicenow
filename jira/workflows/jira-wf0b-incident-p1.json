@@ -28,7 +28,7 @@
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10003\" }, summary: \"ERP-PROD indisponible pour tous les utilisateurs\", priority: { name: \"Highest\" }, labels: [\"software\", \"demo-itsm\"], components: [{ name: \"ERP-PROD\" }], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: \"Incident P1 fictif généré par WF0b (démo ITSM) pour tester le brouillon de REX.\" }] }] } } }) }}"
+        "jsonBody": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10003\" }, summary: \"ERP-PROD indisponible pour tous les utilisateurs\", priority: { name: \"Highest\" }, labels: [\"software\"], components: [{ name: \"ERP-PROD\" }], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: \"Incident P1 fictif généré par WF0b (démo ITSM) pour tester le brouillon de REX.\" }] }] } } }) }}"
       }
     },
     {

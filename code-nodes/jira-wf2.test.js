@@ -110,3 +110,8 @@ test('WF0b Jira : choisit « Terminé » et jamais « Annulé »', () => {
   assert.equal(r.key, 'IT-99');
   assert.throws(() => executer(choisir, { input: [{ transitions: [transitions[1]] }], noeuds: { "Créer l'incident P1": [{ key: 'IT-99' }] } }), /Annuler → Annulé/);
 });
+
+test('WF0b Jira : une seule étiquette, la catégorie (Jira trie les étiquettes, WF1 lit la première)', () => {
+  const corps = noeud(lire(WF0B), "Créer l'incident P1").parameters.jsonBody;
+  assert.match(corps, /labels: \["software"\]/);
+});
