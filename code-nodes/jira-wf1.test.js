@@ -49,3 +49,12 @@ test('le jeu de données Jira donne trois candidats de 6 incidents', () => {
   assert.deepEqual(candidats.map((c) => c.nb), [6, 6, 6]);
   assert.deepEqual(candidats.map((c) => c.ci).sort(), ['ERP-PROD', 'MAIL-EXCH-01', 'NAS-FICHIERS']);
 });
+
+test('Jira WF1 reconnaît un groupe déjà présent dans Airtable (format réel du nœud Search)', () => {
+  const existants = [{ id: 'recX', createdTime: '2026-10-15T00:00:00.000Z', fields: { Signature: 'ERP-PROD | software', Statut: 'Validé' } }];
+  const r = executer(chargerCode(WF1, 'Regrouper et comparer'),
+    { input: normaliser(ticketsJira()), noeuds: { 'Lire les candidats existants': existants } });
+  const erp = r.find((g) => g.signature === 'ERP-PROD | software');
+  assert.equal(erp.recordId, 'recX');
+  assert.equal(erp.statutExistant, 'Validé');
+});

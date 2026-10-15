@@ -1,0 +1,211 @@
+{
+  "name": "Démo ITSM Jira — WF0b Incident P1 résolu",
+  "nodes": [
+    {
+      "id": "bc5bc52c-f631-4b6f-9b7c-d5309bfa07ca",
+      "name": "Lancer WF0b",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "7a48a106-40f5-477a-8ab5-4fcaf16bc81f",
+      "name": "Créer l'incident P1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/issue",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { project: { key: \"IT\" }, issuetype: { id: \"10003\" }, summary: \"ERP-PROD indisponible pour tous les utilisateurs\", priority: { name: \"Highest\" }, labels: [\"software\", \"demo-itsm\"], components: [{ name: \"ERP-PROD\" }], description: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: \"Incident P1 fictif généré par WF0b (démo ITSM) pour tester le brouillon de REX.\" }] }] } } }) }}"
+      }
+    },
+    {
+      "id": "5a84da52-c32c-41c9-937a-a89546b4e4bd",
+      "name": "Notes de l'intervention",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Journal fictif de l'intervention : il servira de chronologie au REX.\n// L'adresse IP et le mot de passe sont là exprès : WF2 doit les masquer avant Claude.\nconst key = $('Créer l\\'incident P1').first().json.key;\nconst lignes = [\n  '09:02 - Alerte supervision : ERP-PROD ne répond plus (HTTP 503 sur le portail). Incident P1 ouvert.',\n  '09:10 - Diagnostic : pool de connexions à la base 10.20.4.15 saturé (500/500).',\n  '09:25 - Redémarrage du service applicatif, reconnexion avec le compte de service password=Erp2026! (à changer).',\n  '09:41 - Service rétabli, temps de réponse normaux. Cause probable : batch de clôture lancé en journée.',\n  '09:50 - Résolu. Action proposée : planifier le batch de clôture la nuit et alerter à 80 % du pool.',\n];\nreturn lignes.map((texte) => ({ json: { key, texte } }));"
+      }
+    },
+    {
+      "id": "309d585a-ff9c-47ae-af52-574859418162",
+      "name": "Ajouter la note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.key }}/comment",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: { type: \"doc\", version: 1, content: [{ type: \"paragraph\", content: [{ type: \"text\", text: $json.texte }] }] } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "31322e9d-3a4b-49f2-a746-f0f97666a3e7",
+      "name": "Transitions possibles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $('Créer l\\'incident P1').first().json.key }}/transitions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "21637e1b-b036-403b-833f-42805944a561",
+      "name": "Choisir la transition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Cherche la transition qui mène à un statut « terminé » (catégorie done),\n// en écartant l'annulation : un incident annulé n'a pas de REX.\nconst key = $('Créer l\\'incident P1').first().json.key;\nconst liste = $input.first().json.transitions || [];\nconst finales = liste.filter((t) => t.to?.statusCategory?.key === 'done' && !/annul|cancel/i.test(t.to.name + ' ' + t.name));\nconst t = finales.find((x) => /termin|done|r[ée]sol/i.test(x.to.name)) || finales[0];\nif (!t) throw new Error('Aucune transition vers un statut terminé (hors annulation). Disponibles : ' + liste.map((x) => `${x.name} → ${x.to?.name}`).join(', '));\nreturn [{ json: { key, transitionId: t.id, transition: t.name, statut: t.to.name } }];"
+      }
+    },
+    {
+      "id": "35aa8898-fa50-4d28-9184-10b045d6e51e",
+      "name": "Résoudre l'incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.key }}/transitions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ transition: { id: $json.transitionId } }) }}"
+      }
+    },
+    {
+      "id": "b3d6a200-7232-469e-b276-5820ee64ca1f",
+      "name": "Note WF0b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -360
+      ],
+      "parameters": {
+        "content": "## WF0b — Incident P1 résolu (Jira)\nLancé à la main, pour tester WF2.\n\n1. Crée un incident P1 (priorité Highest) sur ERP-PROD.\n2. Ajoute 5 notes d'intervention horodatées (avec une IP et un mot de passe que WF2 doit masquer).\n3. Le passe à « Terminé » (jamais « Annulé »).\n\nWF2 rédige ensuite le brouillon de REX dans l'heure qui suit.",
+        "color": 4,
+        "width": 360,
+        "height": 300
+      }
+    }
+  ],
+  "connections": {
+    "Lancer WF0b": {
+      "main": [
+        [
+          {
+            "node": "Créer l'incident P1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer l'incident P1": {
+      "main": [
+        [
+          {
+            "node": "Notes de l'intervention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notes de l'intervention": {
+      "main": [
+        [
+          {
+            "node": "Ajouter la note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ajouter la note": {
+      "main": [
+        [
+          {
+            "node": "Transitions possibles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transitions possibles": {
+      "main": [
+        [
+          {
+            "node": "Choisir la transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choisir la transition": {
+      "main": [
+        [
+          {
+            "node": "Résoudre l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

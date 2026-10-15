@@ -14,7 +14,8 @@ Le champ « Modifié le » (type *Dernière modification*) est indispensable : c
 | Titre proposé | Texte | Rédigé par Claude |
 | Hypothèse | Texte long | Cause commune supposée, avec ce qui reste à vérifier |
 | Statut | Sélection | À trier, Validé, Rejeté, Créé |
-| Problème | Texte | Numéro PRB une fois créé dans ServiceNow |
+| Problème | Texte | Numéro du problème une fois créé (PRB ServiceNow ou clé Jira) |
+| Outil | Sélection | Jira ou ServiceNow : chaque WF1/WF1b ne lit, ne crée et ne traite que les candidats de son outil |
 | Modifié le | Dernière modification | Déclenche WF1b |
 
 ## Brouillons REX
@@ -22,11 +23,12 @@ Le champ « Modifié le » (type *Dernière modification*) est indispensable : c
 | Champ | Type | Rôle |
 |---|---|---|
 | Incident | Texte | Numéro INC |
-| sys_id | Texte | Pour réécrire dans l'incident |
+| sys_id | Texte | sys_id ServiceNow ou clé Jira (IT-xx), pour réécrire dans l'incident |
 | Titre | Texte | Description courte de l'incident |
 | Durée (min) | Nombre | De l'ouverture à la résolution |
 | Brouillon | Texte long | REX rédigé par Claude, à corriger directement |
 | Statut | Sélection | À relire, Validé, Publié |
+| Outil | Sélection | Jira ou ServiceNow : chaque WF2/WF2b ne lit, ne crée et ne publie que les brouillons de son outil |
 | Modifié le | Dernière modification | Déclenche WF2b |
 
 ## Actions (optionnel)

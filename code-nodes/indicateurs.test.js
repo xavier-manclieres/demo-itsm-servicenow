@@ -76,3 +76,11 @@ test('aucun texte de REX, hypothèse ni sys_id ne sort vers Power BI', () => {
     assert.ok(!sortie.includes(fuite), `fuite : ${fuite}`);
   }
 });
+
+test('accepte aussi des enregistrements Airtable déjà à plat (compatibilité)', () => {
+  const { executer, chargerCode } = require('./n8n-code-runner');
+  const path = require('node:path');
+  const code = chargerCode(path.join(__dirname, '..', 'workflows', 'wf3-indicateurs.json'), 'Calculer les indicateurs');
+  const [r] = executer(code, { noeuds: { 'Lire les candidats': [candidat(1, 'Validé', 4)], 'Lire les REX': [] } });
+  assert.equal(r.synthese.problemes_valides, 1);
+});

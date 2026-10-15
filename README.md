@@ -20,6 +20,7 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 | Workflow | Rôle | Déclencheur | État |
 |---|---|---|---|
 | WF0 | Jeu de données de démo | manuel, une fois | construit, testé |
+| WF0b | Incident P1 terminé, pour tester WF2 (Jira) | manuel | construit, testé |
 | WF1 | Détection des incidents récurrents | chaque nuit à 2 h | construit, testé |
 | WF1b | Création du problème dans ServiceNow | candidat passé à « Validé » (vérifié toutes les 5 min) | construit, testé |
 | WF2 | Brouillon de REX | incident P1 résolu | construit, testé |
@@ -31,6 +32,7 @@ ServiceNow  <-- API REST / webhook -->  n8n  <-->  Claude (tri, rédaction)
 ## Ce que le DevOps apporte
 
 - **Infra as code** : n8n et Postgres démarrent avec `docker compose up`.
+- **Deux outils ITSM, une seule base** : Jira et ServiceNow partagent les tables Airtable ; le champ « Outil » sépare leurs candidats et leurs brouillons, chaque workflow ne voit que les siens.
 - **Workflows as code** : exports JSON sans identifiants, relus par diff. Un dossier par outil ITSM (`servicenow/workflows/`, `jira/workflows/`) et `workflows/` pour ce qui ne dépend d'aucun outil (WF3).
 - **Prompts versionnés** : `prompts/`, chaque changement est un commit.
 - **Tests** : `code-nodes/` exécute le code des nœuds Code **directement depuis les exports** de workflows. Le code testé est exactement celui qui tourne dans n8n, sans copie à maintenir.
@@ -55,9 +57,9 @@ npm test                    # tests des nœuds Code
 
 Dans n8n : *Workflows › Import from File*, puis choisir un fichier de `servicenow/workflows/` (et `workflows/` pour WF3). Ensuite :
 
-1. Créer les identifiants **ServiceNow** (Basic Auth), **Airtable** (jeton d'accès), **Anthropic** et, pour WF3, un identifiant **Basic Auth** dédié à Power BI, puis les associer aux nœuds.
+1. Créer les identifiants **ServiceNow** (OAuth2 : application « n8n » dans System OAuth → Application Registry, redirection vers `…/rest/oauth2-credential/callback` ; la Basic Auth est bloquée par défaut sur les instances récentes — « Basic Auth Restriction »), **Airtable** (jeton d'accès), **Anthropic** et, pour WF3, un identifiant **Basic Auth** dédié à Power BI, puis les associer aux nœuds.
 2. Remplacer l'identifiant de base Airtable (`app…`) et de table (`tbl…`) par ceux de votre base, construite selon `airtable/schema.md`.
-3. Pour WF0, remplacer les trois `SYS_ID_CI_x` par des sys_id de CI de votre instance.
+3. WF0 crée lui-même les trois CI de la démo s'ils manquent, puis 22 incidents marqués `demo-itsm` (ID de corrélation). WF0b (Jira) crée un incident P1 terminé pour tester WF2.
 
 ### Brancher Power BI
 
@@ -81,7 +83,7 @@ workflows/     exports JSON communs aux outils ITSM (WF3, indicateurs)
 code-nodes/    JavaScript des nœuds Code + tests
 prompts/       prompts du tri et du REX
 servicenow/    workflows WF0 à WF2b, Business Rule, jeu de données
-jira/          connecteur Jira Service Management (en cours)
+jira/          workflows WF0 à WF2b pour Jira Service Management (+ WF0b, incident P1 de test)
 airtable/      schéma des tables
 powerbi/       données d'exemple et guide du rapport
 infra/         docker-compose, déploiement

@@ -1,0 +1,325 @@
+{
+  "name": "Démo ITSM Jira — WF2 Brouillon de REX",
+  "nodes": [
+    {
+      "id": "f9b910f4-28ca-4a71-a5a1-53a4cb23ca02",
+      "name": "Toutes les 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        112
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "10157c40-bbbf-4d19-8391-1a61ae13cd92",
+      "name": "Lire les REX existants",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        112
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "search",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "filterByFormula": "{Outil}='Jira'",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "Incident"
+          ]
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "857a6cb9-e8b1-4639-a516-d13854b58c4f",
+      "name": "Incidents P1 résolus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        112
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://xavier-itsm.atlassian.net/rest/api/3/search/jql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jql: \"project = IT AND issuetype = 10003 AND priority = Highest AND statusCategory = Done AND status != 10003 AND statusCategoryChangedDate >= -60m ORDER BY statusCategoryChangedDate ASC\", fields: [\"summary\", \"description\", \"created\", \"resolutiondate\", \"statuscategorychangedate\", \"comment\"], maxResults: 50 }) }}"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "89541745-2574-4d53-bb81-c35676d94b58",
+      "name": "Préparer les REX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        112
+      ],
+      "parameters": {
+        "jsCode": "// Pour chaque incident P1 Jira terminé sans REX : chronologie (commentaires), durée,\n// et masquage des données sensibles avant l'envoi au modèle.\nconst dejaRediges = new Set(\n  $('Lire les REX existants').all()\n    .map((i) => (i.json.fields || i.json).Incident) // Airtable « Search » : { id, fields: { Incident } }\n    .filter(Boolean)\n);\n\n// Texte brut d'un document ADF (format des descriptions et commentaires Jira Cloud).\nconst adf = (n) => {\n  if (!n) return '';\n  if (typeof n === 'string') return n;\n  if (n.type === 'text') return n.text || '';\n  if (n.type === 'hardBreak') return '\\n';\n  const s = (n.content || []).map(adf).join('');\n  return ['paragraph', 'heading', 'listItem', 'codeBlock'].includes(n.type) ? s + '\\n' : s;\n};\n\n// Masque adresses IP et secrets passés en clair, comme côté ServiceNow.\nconst masquer = (t) => String(t || '')\n  .replace(/\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b/g, '[IP]')\n  .replace(/\\b(password|passwd|pwd|mot de passe|token|secret)(\\s*[:=]\\s*)\\S+/gi, '$1$2[MASQUÉ]')\n  .replace(/(--pass(?:word)?[=\\s]+)\\S+/gi, '$1[MASQUÉ]')\n  .replace(/(\\s-p)(?=\\S)\\S+/g, '$1[MASQUÉ]');\n\nconst out = [];\nfor (const { json: page } of $input.all()) {\n  for (const issue of page.issues || []) {\n    const f = issue.fields || {};\n    if (!issue.key || dejaRediges.has(issue.key)) continue;\n\n    const commentaires = (f.comment?.comments || [])\n      .slice()\n      .sort((a, b) => String(a.created).localeCompare(String(b.created)));\n\n    // Les intervenants deviennent « Intervenant 1, 2… » : aucun nom n'est envoyé au modèle.\n    const alias = {};\n    const pseudo = (u) => (alias[u] ||= `Intervenant ${Object.keys(alias).length + 1}`);\n\n    const chronologie = commentaires\n      .map((c) => `${c.created}, ${pseudo(c.author?.accountId || c.author?.displayName || '?')} : ${masquer(adf(c.body).trim())}`)\n      .join('\\n');\n\n    // Fin de l'incident : date de résolution si le workflow Jira la renseigne,\n    // sinon date de passage dans la catégorie « Terminé ».\n    const fin = f.resolutiondate || f.statuscategorychangedate;\n\n    out.push({ json: {\n      sys_id: issue.key,\n      number: issue.key,\n      short_description: masquer(f.summary),\n      description: masquer(adf(f.description).trim()),\n      chronologie: chronologie || 'Aucun commentaire.',\n      duree: Math.round((new Date(fin) - new Date(f.created)) / 60000),\n      nbNotes: commentaires.length,\n    }});\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "bff449a2-8a14-435c-8e28-b580eca23d95",
+      "name": "Rédiger le REX",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        112
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Rédige le brouillon de REX de l'incident {{ $json.number }}\n« {{ $json.short_description }} », durée {{ $json.duree }} minutes.\n\nChronologie (commentaires du ticket Jira) :\n{{ $json.chronologie }}\n\nDescription initiale : {{ $json.description }}\n\nStructure obligatoire :\n1. Résumé, en 3 phrases\n2. Impact\n3. Chronologie horodatée\n4. Cause racine\n5. Actions immédiates\n6. Actions préventives proposées\n\nRègles : n'invente rien ; si une information manque, écris « à confirmer » ;\nton factuel, phrases courtes."
+      }
+    },
+    {
+      "id": "e922a6c9-57a4-4be4-93bf-0fcbc7bf8b5b",
+      "name": "Claude (rédaction)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        976,
+        336
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 4096,
+          "thinkingMode": "adaptive",
+          "effort": "low"
+        }
+      }
+    },
+    {
+      "id": "d3ba43a6-fe51-4660-a879-ccdc23323802",
+      "name": "Créer le brouillon",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        112
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "create",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Incident": "={{ $('Préparer les REX').item.json.number }}",
+            "sys_id": "={{ $('Préparer les REX').item.json.sys_id }}",
+            "Titre": "={{ $('Préparer les REX').item.json.short_description }}",
+            "Durée (min)": "={{ $('Préparer les REX').item.json.duree }}",
+            "Brouillon": "={{ $json.text }}",
+            "Statut": "À relire",
+            "Outil": "Jira"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Incident",
+              "displayName": "Incident",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sys_id",
+              "displayName": "sys_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Titre",
+              "displayName": "Titre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Durée (min)",
+              "displayName": "Durée (min)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brouillon",
+              "displayName": "Brouillon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Outil",
+              "displayName": "Outil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "d8fcf169-21ea-44ec-a743-af99bd253319",
+      "name": "Note WF2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -300
+      ],
+      "parameters": {
+        "content": "## WF2 — Brouillon de REX (Jira)\nToutes les 15 minutes : incidents P1 (priorité Highest) passés à Terminé dans l'heure, sans REX dans Airtable (Outil = Jira).\n\n- La chronologie vient des commentaires du ticket (format ADF converti en texte).\n- Avant l'envoi à Claude : adresses IP et secrets masqués, intervenants pseudonymisés.\n- Le brouillon arrive dans Airtable en « À relire » ; « sys_id » contient la clé Jira (IT-xx).\n- Les incidents annulés sont exclus.",
+        "color": 4,
+        "width": 380,
+        "height": 330
+      }
+    }
+  ],
+  "connections": {
+    "Toutes les 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Lire les REX existants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les REX existants": {
+      "main": [
+        [
+          {
+            "node": "Incidents P1 résolus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incidents P1 résolus": {
+      "main": [
+        [
+          {
+            "node": "Préparer les REX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les REX": {
+      "main": [
+        [
+          {
+            "node": "Rédiger le REX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger le REX": {
+      "main": [
+        [
+          {
+            "node": "Créer le brouillon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (rédaction)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Rédiger le REX",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

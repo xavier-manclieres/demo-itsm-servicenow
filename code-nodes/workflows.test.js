@@ -2,6 +2,7 @@
 // produire exactement les trois candidats attendus par WF1.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const { chargerCode, executer } = require('./n8n-code-runner');
 const { regrouper } = require('./regroupement');
@@ -67,8 +68,48 @@ test('WF0 ServiceNow : rien à créer renvoie un élément pour poursuivre', () 
   assert.deepEqual(r, [{ aCreer: false }]);
 });
 
+test('WF0 ServiceNow : le garde-fou ne regarde que les incidents de la démo', () => {
+  const wf = JSON.parse(fs.readFileSync(WF0, 'utf8'));
+  const cherche = wf.nodes.find((n) => n.name === 'Incidents déjà présents ?');
+  assert.equal(cherche.parameters.options.sysparm_query, 'correlation_id=demo-itsm');
+  const cree = wf.nodes.find((n) => n.name === "Créer l'incident");
+  // Le nœud « incident » de n8n ne connaît pas correlation_id : on écrit dans la table.
+  assert.equal(cree.parameters.resource, 'tableRecord');
+  assert.equal(cree.parameters.tableName, 'incident');
+  const champ = cree.parameters.fieldsToSend.field.find((f) => f.column === 'correlation_id');
+  assert.equal(champ.value, 'demo-itsm');
+});
+
 test('WF0 ServiceNow : le garde-fou s\'arrête si des incidents existent déjà', () => {
   const garde = chargerCode(WF0, 'Garde-fou');
   assert.deepEqual(executer(garde, { input: [{}] }), [{ ok: true }]);
   assert.throws(() => executer(garde, { input: [{ number: 'INC0010001' }] }), /INC0010001/);
 });
+
+test('ServiceNow : tous les nœuds ServiceNow utilisent OAuth2', () => {
+  const dossier = path.join(__dirname, '..', 'servicenow', 'workflows');
+  for (const f of fs.readdirSync(dossier).filter((x) => x.endsWith('.json'))) {
+    const wf = JSON.parse(fs.readFileSync(path.join(dossier, f), 'utf8'));
+    for (const n of wf.nodes.filter((x) => x.type === 'n8n-nodes-base.serviceNow')) {
+      assert.equal(n.parameters.authentication, 'oAuth2', `${f} / ${n.name}`);
+    }
+  }
+});
+
+// Jira et ServiceNow partagent la table « Candidats problèmes » : chaque outil
+// ne lit, ne crée et ne traite que ses propres candidats (champ « Outil »).
+for (const [outil, dossier, prefixe] of [['Jira', 'jira', 'jira'], ['ServiceNow', 'servicenow', 'servicenow']]) {
+  const lire = (nom) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', dossier, 'workflows', `${prefixe}-${nom}.json`), 'utf8'));
+  test(`${outil} : WF1 ne lit et ne crée que des candidats ${outil}`, () => {
+    const wf1 = lire('wf1-incidents-recurrents');
+    const n = (nom) => wf1.nodes.find((x) => x.name === nom);
+    assert.equal(n('Lire les candidats existants').parameters.filterByFormula, `{Outil}='${outil}'`);
+    assert.equal(n('Créer le candidat').parameters.columns.value.Outil, outil);
+  });
+  test(`${outil} : WF1b ne traite que les candidats ${outil}`, () => {
+    const wf1b = lire('wf1b-creation-probleme');
+    const declencheur = wf1b.nodes.find((x) => x.type === 'n8n-nodes-base.airtableTrigger');
+    assert.match(declencheur.parameters.additionalFields.formula, new RegExp(`\\{Outil\\}='${outil}'`));
+    assert.match(declencheur.parameters.additionalFields.fields, /Modifié le/);
+  });
+}

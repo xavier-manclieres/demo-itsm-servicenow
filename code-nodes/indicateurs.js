@@ -7,10 +7,12 @@ const code = chargerCode(WF3, 'Calculer les indicateurs');
 
 // candidats : sortie de « Lire les candidats » (table Candidats problèmes)
 // rex : sortie de « Lire les REX » (table Brouillons REX)
-// Format Airtable aplati par n8n : { id, createdTime, ...champs }
+// Format réel du nœud Airtable « Search » : { id, createdTime, fields: { ...champs } }.
+// Les tests écrivent les enregistrements à plat ; on les remet au format réel ici.
+const reel = ({ id, createdTime, ...fields }) => ({ id, createdTime, fields });
 function calculerIndicateurs(candidats = [], rex = []) {
   const [reponse] = executer(code, {
-    noeuds: { 'Lire les candidats': candidats, 'Lire les REX': rex },
+    noeuds: { 'Lire les candidats': candidats.map(reel), 'Lire les REX': rex.map(reel) },
   });
   return reponse;
 }

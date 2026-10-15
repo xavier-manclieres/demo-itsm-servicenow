@@ -22,15 +22,19 @@
         0
       ],
       "parameters": {
-        "authentication": "basicAuth",
-        "resource": "incident",
+        "authentication": "oAuth2",
+        "resource": "tableRecord",
         "operation": "getAll",
+        "tableName": "incident",
         "returnAll": false,
         "limit": 1,
         "options": {
+          "sysparm_query": "correlation_id=demo-itsm",
           "sysparm_fields": [
-            "number"
-          ]
+            "number",
+            "sys_id"
+          ],
+          "sysparm_exclude_reference_link": true
         }
       },
       "alwaysOutputData": true
@@ -45,7 +49,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Garde-fou : WF0 ne doit tourner qu'une seule fois.\n// Si l'instance contient déjà des incidents, on s'arrête sans rien créer.\nconst trouves = $input.all().filter(({ json }) => json.number || json.sys_id);\nif (trouves.length > 0) {\n  const ex = trouves[0].json.number || trouves[0].json.sys_id;\n  throw new Error(`L'instance contient déjà des incidents (par exemple ${ex}) : WF0 s'arrête pour ne pas créer de doublons. Supprimez-les dans ServiceNow avant de relancer.`);\n}\nreturn [{ json: { ok: true } }];"
+        "jsCode": "// Garde-fou : WF0 ne doit tourner qu'une seule fois.\n// On ne regarde que les incidents créés par la démo (correlation_id = demo-itsm) :\n// les incidents d'exemple livrés avec l'instance sont ignorés.\nconst trouves = $input.all().filter(({ json }) => json.number || json.sys_id);\nif (trouves.length > 0) {\n  const ex = trouves[0].json.number || trouves[0].json.sys_id;\n  throw new Error(`Des incidents de la démo existent déjà (par exemple ${ex}) : WF0 s'arrête pour ne pas créer de doublons. Supprimez-les dans ServiceNow (filtre : ID de corrélation = demo-itsm) avant de relancer.`);\n}\nreturn [{ json: { ok: true } }];"
       }
     },
     {
@@ -71,7 +75,7 @@
         0
       ],
       "parameters": {
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "resource": "tableRecord",
         "operation": "getAll",
         "tableName": "cmdb_ci_server",
@@ -142,7 +146,7 @@
         -96
       ],
       "parameters": {
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "resource": "tableRecord",
         "operation": "create",
         "tableName": "cmdb_ci_server",
@@ -184,16 +188,42 @@
         0
       ],
       "parameters": {
-        "resource": "incident",
+        "authentication": "oAuth2",
+        "resource": "tableRecord",
         "operation": "create",
-        "authentication": "basicAuth",
-        "short_description": "={{ $json.short_description }}",
-        "additionalFields": {
-          "category": "={{ $json.category }}",
-          "cmdb_ci": "={{ $json.cmdb_ci ? [$json.cmdb_ci] : [] }}",
-          "description": "Incident fictif généré par WF0 (démo ITSM).",
-          "impact": 3,
-          "urgency": 3
+        "tableName": "incident",
+        "dataToSend": "columns",
+        "fieldsToSend": {
+          "field": [
+            {
+              "column": "short_description",
+              "value": "={{ $json.short_description }}"
+            },
+            {
+              "column": "category",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "column": "cmdb_ci",
+              "value": "={{ $json.cmdb_ci }}"
+            },
+            {
+              "column": "description",
+              "value": "Incident fictif généré par WF0 (démo ITSM)."
+            },
+            {
+              "column": "impact",
+              "value": "3"
+            },
+            {
+              "column": "urgency",
+              "value": "3"
+            },
+            {
+              "column": "correlation_id",
+              "value": "demo-itsm"
+            }
+          ]
         }
       }
     },
@@ -207,7 +237,7 @@
         -50
       ],
       "parameters": {
-        "content": "## WF0 — Jeu de données (ServiceNow)\nLancé une seule fois, à la main.\n\n1. Créer l'identifiant **ServiceNow PDI** (Basic Auth : admin + mot de passe de l'instance).\n2. Lancer : s'arrête si l'instance contient déjà des incidents (garde-fou), sinon crée les 3 CI absents (ERP-PROD, NAS-FICHIERS, MAIL-EXCH-01) puis 22 incidents fictifs (impact et urgence 3 = priorité basse).",
+        "content": "## WF0 — Jeu de données (ServiceNow)\nLancé une seule fois, à la main.\n\n1. Créer l'identifiant **ServiceNow PDI** (OAuth2 : application « n8n » dans System OAuth → Application Registry).\n2. Lancer : s'arrête si des incidents de la démo existent déjà (garde-fou), sinon crée les 3 CI absents (ERP-PROD, NAS-FICHIERS, MAIL-EXCH-01) puis 22 incidents fictifs (impact et urgence 3 = priorité basse).",
         "color": 4,
         "width": 300,
         "height": 240

@@ -35,8 +35,8 @@
         },
         "triggerField": "Modifié le",
         "additionalFields": {
-          "fields": "Incident,sys_id,Brouillon,Statut",
-          "formula": "{Statut}='Validé'"
+          "fields": "Incident,sys_id,Brouillon,Statut,Outil,Modifié le",
+          "formula": "AND({Statut}='Validé', {Outil}='ServiceNow')"
         }
       }
     },
@@ -52,7 +52,7 @@
       "parameters": {
         "resource": "tableRecord",
         "operation": "update",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "tableName": "incident",
         "id": "={{ $json.fields['sys_id'] }}",
         "dataToSend": "columns",
@@ -116,7 +116,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "options",
+              "type": "string",
               "canBeUsedToMatch": true
             }
           ]

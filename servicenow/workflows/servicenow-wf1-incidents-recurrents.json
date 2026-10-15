@@ -54,7 +54,8 @@
             "Signature",
             "Statut"
           ]
-        }
+        },
+        "filterByFormula": "{Outil}='ServiceNow'"
       },
       "executeOnce": true,
       "alwaysOutputData": true
@@ -71,7 +72,7 @@
       "parameters": {
         "resource": "incident",
         "operation": "getAll",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "returnAll": true,
         "options": {
           "sysparm_query": "opened_at>=javascript:gs.daysAgoStart(30)^problem_idISEMPTY",
@@ -101,7 +102,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Regroupe les incidents par CI + catégorie (groupes de 3 ou plus)\n// et repère les signatures déjà présentes dans Airtable.\nconst SEUIL = 3;\n\nconst existants = {};\nfor (const { json: r } of $('Lire les candidats existants').all()) {\n  if (r.Signature) existants[r.Signature] = { id: r.id, statut: r.Statut || '' };\n}\n\nconst nomCi = v => (v && typeof v === 'object') ? (v.display_value || v.value || '') : (v || '');\n\nconst groupes = {};\nfor (const { json: i } of $input.all()) {\n  const ci = nomCi(i.cmdb_ci);\n  if (!ci) continue;\n  const cle = `${ci} | ${i.category}`;\n  (groupes[cle] ||= []).push({ ...i, ci });\n}\n\nreturn Object.entries(groupes)\n  .filter(([, l]) => l.length >= SEUIL)\n  .map(([signature, l]) => ({ json: {\n    signature,\n    ci: l[0].ci,\n    categorie: l[0].category,\n    nb: l.length,\n    incidents: l.map(i => i.number).join(', '),\n    ids: l.map(i => i.sys_id).join(','),\n    descriptions: l.map(i => `${i.number} : ${i.short_description}`).join('\\n'),\n    recordId: existants[signature]?.id || '',\n    statutExistant: existants[signature]?.statut || '',\n  }}));"
+        "jsCode": "// Regroupe les incidents par CI + catégorie (groupes de 3 ou plus)\n// et repère les signatures déjà présentes dans Airtable.\nconst SEUIL = 3;\n\nconst existants = {};\nfor (const { json: r } of $('Lire les candidats existants').all()) {\n  // Le nœud Airtable « Search » renvoie { id, createdTime, fields: { Signature, Statut } }.\n  const f = r.fields || r;\n  if (f.Signature) existants[f.Signature] = { id: r.id, statut: f.Statut || '' };\n}\n\nconst nomCi = v => (v && typeof v === 'object') ? (v.display_value || v.value || '') : (v || '');\n\nconst groupes = {};\nfor (const { json: i } of $input.all()) {\n  const ci = nomCi(i.cmdb_ci);\n  if (!ci) continue;\n  const cle = `${ci} | ${i.category}`;\n  (groupes[cle] ||= []).push({ ...i, ci });\n}\n\nreturn Object.entries(groupes)\n  .filter(([, l]) => l.length >= SEUIL)\n  .map(([signature, l]) => ({ json: {\n    signature,\n    ci: l[0].ci,\n    categorie: l[0].category,\n    nb: l.length,\n    incidents: l.map(i => i.number).join(', '),\n    ids: l.map(i => i.sys_id).join(','),\n    descriptions: l.map(i => `${i.number} : ${i.short_description}`).join('\\n'),\n    recordId: existants[signature]?.id || '',\n    statutExistant: existants[signature]?.statut || '',\n  }}));"
       }
     },
     {
@@ -327,7 +328,8 @@
             "IDs incidents": "={{ $('Regrouper et comparer').item.json.ids }}",
             "Titre proposé": "={{ $json.output.titre }}",
             "Hypothèse": "={{ $json.output.hypothese }}",
-            "Statut": "À trier"
+            "Statut": "À trier",
+            "Outil": "ServiceNow"
           },
           "schema": [
             {
@@ -399,7 +401,16 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "options",
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Outil",
+              "displayName": "Outil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
               "canBeUsedToMatch": true
             }
           ]

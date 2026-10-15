@@ -9,6 +9,8 @@ const inc = (n, ci, cat, desc = 'x') => ({
   category: cat,
   short_description: desc,
 });
+// Format réel de sortie du nœud Airtable « Search » (v2.2).
+const airtable = (id, Signature, Statut) => ({ id, createdTime: '2026-10-15T20:51:26.000Z', fields: { Signature, Statut } });
 const trois = (ci, cat) => [inc(1, ci, cat), inc(2, ci, cat), inc(3, ci, cat)];
 
 test('garde un groupe de 3 incidents ou plus', () => {
@@ -43,13 +45,13 @@ test('lit le nom du CI quand ServiceNow renvoie un objet', () => {
 });
 
 test('un nouveau groupe n\'a pas d\'enregistrement Airtable', () => {
-  const r = regrouper(trois('ERP', 'software'), [{ id: 'rec1', Signature: 'Autre | network', Statut: 'À trier' }]);
+  const r = regrouper(trois('ERP', 'software'), [airtable('rec1', 'Autre | network', 'À trier')]);
   assert.equal(r[0].recordId, '');
   assert.equal(r[0].statutExistant, '');
 });
 
 test('un groupe déjà connu garde son statut décidé', () => {
-  const r = regrouper(trois('ERP', 'software'), [{ id: 'rec1', Signature: 'ERP | software', Statut: 'Rejeté' }]);
+  const r = regrouper(trois('ERP', 'software'), [airtable('rec1', 'ERP | software', 'Rejeté')]);
   assert.equal(r[0].recordId, 'rec1');
   assert.equal(r[0].statutExistant, 'Rejeté');
 });
@@ -58,4 +60,10 @@ test('supporte une table Airtable vide (élément vide de alwaysOutputData)', ()
   const r = regrouper(trois('ERP', 'software'), [{}]);
   assert.equal(r.length, 1);
   assert.equal(r[0].recordId, '');
+});
+
+test('accepte aussi un enregistrement Airtable à plat (compatibilité)', () => {
+  const r = regrouper(trois('ERP', 'software'), [{ id: 'rec2', Signature: 'ERP | software', Statut: 'Validé' }]);
+  assert.equal(r[0].recordId, 'rec2');
+  assert.equal(r[0].statutExistant, 'Validé');
 });

@@ -35,8 +35,8 @@
         },
         "triggerField": "Modifié le",
         "additionalFields": {
-          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut,Modifié le",
-          "formula": "AND({Statut}='Validé', {Problème}='')"
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut,Outil,Modifié le",
+          "formula": "AND({Statut}='Validé', {Problème}='', {Outil}='Jira')"
         }
       }
     },
@@ -159,7 +159,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "options",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {

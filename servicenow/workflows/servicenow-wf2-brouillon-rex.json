@@ -51,7 +51,8 @@
           "fields": [
             "Incident"
           ]
-        }
+        },
+        "filterByFormula": "{Outil}='ServiceNow'"
       },
       "executeOnce": true,
       "alwaysOutputData": true
@@ -68,7 +69,7 @@
       "parameters": {
         "resource": "incident",
         "operation": "getAll",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "returnAll": true,
         "options": {
           "sysparm_query": "priority=1^state=6^resolved_at>=javascript:gs.minutesAgoStart(60)",
@@ -98,7 +99,7 @@
       "parameters": {
         "resource": "tableRecord",
         "operation": "getAll",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "tableName": "sys_journal_field",
         "returnAll": true,
         "options": {
@@ -126,7 +127,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Pour chaque incident P1 résolu sans REX : chronologie (notes de travail et\n// commentaires), durée, et masquage des données sensibles avant l'envoi au modèle.\nconst dejaRediges = new Set(\n  $('Lire les REX existants').all().map((i) => i.json.Incident).filter(Boolean)\n);\n\nconst enDate = (s) => new Date(String(s).replace(' ', 'T') + 'Z');\n\n// Masque adresses IP et secrets passés en clair. Les noms d'hôtes ne sont pas\n// masqués ici : en entreprise, une liste de motifs propre au SI s'ajoute.\nconst masquer = (t) => String(t || '')\n  .replace(/\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b/g, '[IP]')\n  .replace(/\\b(password|passwd|pwd|mot de passe|token|secret)(\\s*[:=]\\s*)\\S+/gi, '$1$2[MASQUÉ]')\n  .replace(/(--pass(?:word)?[=\\s]+)\\S+/gi, '$1[MASQUÉ]')\n  .replace(/(\\s-p)(?=\\S)\\S+/g, '$1[MASQUÉ]');\n\nconst notesParIncident = {};\nfor (const { json: n } of $input.all()) {\n  if (!n.element_id) continue;\n  (notesParIncident[n.element_id] ||= []).push(n);\n}\n\nconst out = [];\nfor (const { json: inc } of $('Incidents P1 résolus').all()) {\n  if (!inc.sys_id || dejaRediges.has(inc.number)) continue;\n\n  const notes = (notesParIncident[inc.sys_id] || [])\n    .slice()\n    .sort((a, b) => String(a.sys_created_on).localeCompare(String(b.sys_created_on)));\n\n  // Les intervenants deviennent « Intervenant 1, 2… » : aucun nom n'est envoyé au modèle.\n  const alias = {};\n  const pseudo = (u) => (alias[u] ||= `Intervenant ${Object.keys(alias).length + 1}`);\n\n  const chronologie = notes\n    .map((n) => `${n.sys_created_on} UTC, ${pseudo(n.sys_created_by)} : ${masquer(n.value)}`)\n    .join('\\n');\n\n  out.push({ json: {\n    sys_id: inc.sys_id,\n    number: inc.number,\n    short_description: masquer(inc.short_description),\n    close_notes: masquer(inc.close_notes),\n    chronologie: chronologie || 'Aucune note de travail.',\n    duree: Math.round((enDate(inc.resolved_at) - enDate(inc.opened_at)) / 60000),\n    nbNotes: notes.length,\n  }});\n}\nreturn out;"
+        "jsCode": "// Pour chaque incident P1 résolu sans REX : chronologie (notes de travail et\n// commentaires), durée, et masquage des données sensibles avant l'envoi au modèle.\nconst dejaRediges = new Set(\n  $('Lire les REX existants').all()\n    .map((i) => (i.json.fields || i.json).Incident) // Airtable « Search » : { id, fields: { Incident } }\n    .filter(Boolean)\n);\n\nconst enDate = (s) => new Date(String(s).replace(' ', 'T') + 'Z');\n\n// Masque adresses IP et secrets passés en clair. Les noms d'hôtes ne sont pas\n// masqués ici : en entreprise, une liste de motifs propre au SI s'ajoute.\nconst masquer = (t) => String(t || '')\n  .replace(/\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b/g, '[IP]')\n  .replace(/\\b(password|passwd|pwd|mot de passe|token|secret)(\\s*[:=]\\s*)\\S+/gi, '$1$2[MASQUÉ]')\n  .replace(/(--pass(?:word)?[=\\s]+)\\S+/gi, '$1[MASQUÉ]')\n  .replace(/(\\s-p)(?=\\S)\\S+/g, '$1[MASQUÉ]');\n\nconst notesParIncident = {};\nfor (const { json: n } of $input.all()) {\n  if (!n.element_id) continue;\n  (notesParIncident[n.element_id] ||= []).push(n);\n}\n\nconst out = [];\nfor (const { json: inc } of $('Incidents P1 résolus').all()) {\n  if (!inc.sys_id || dejaRediges.has(inc.number)) continue;\n\n  const notes = (notesParIncident[inc.sys_id] || [])\n    .slice()\n    .sort((a, b) => String(a.sys_created_on).localeCompare(String(b.sys_created_on)));\n\n  // Les intervenants deviennent « Intervenant 1, 2… » : aucun nom n'est envoyé au modèle.\n  const alias = {};\n  const pseudo = (u) => (alias[u] ||= `Intervenant ${Object.keys(alias).length + 1}`);\n\n  const chronologie = notes\n    .map((n) => `${n.sys_created_on} UTC, ${pseudo(n.sys_created_by)} : ${masquer(n.value)}`)\n    .join('\\n');\n\n  out.push({ json: {\n    sys_id: inc.sys_id,\n    number: inc.number,\n    short_description: masquer(inc.short_description),\n    close_notes: masquer(inc.close_notes),\n    chronologie: chronologie || 'Aucune note de travail.',\n    duree: Math.round((enDate(inc.resolved_at) - enDate(inc.opened_at)) / 60000),\n    nbNotes: notes.length,\n  }});\n}\nreturn out;"
       }
     },
     {
@@ -159,7 +160,9 @@
           "value": "claude-sonnet-5-5"
         },
         "options": {
-          "maxTokensToSample": 2048
+          "maxTokensToSample": 4096,
+          "thinkingMode": "adaptive",
+          "effort": "low"
         }
       }
     },
@@ -196,7 +199,8 @@
             "Titre": "={{ $('Préparer les REX').item.json.short_description }}",
             "Durée (min)": "={{ $('Préparer les REX').item.json.duree }}",
             "Brouillon": "={{ $json.text }}",
-            "Statut": "À relire"
+            "Statut": "À relire",
+            "Outil": "ServiceNow"
           },
           "schema": [
             {
@@ -250,7 +254,16 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "options",
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Outil",
+              "displayName": "Outil",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
               "canBeUsedToMatch": true
             }
           ]

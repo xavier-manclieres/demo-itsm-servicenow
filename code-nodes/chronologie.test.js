@@ -56,7 +56,7 @@ test('ne rédige pas deux fois le REX d\'un même incident', () => {
   const r = preparerRex(
     [p1(1, '2026-10-01 08:00:00', '2026-10-01 09:00:00'), p1(2, '2026-10-01 08:00:00', '2026-10-01 09:00:00')],
     [],
-    [{ id: 'rec1', Incident: 'INC1' }],
+    [{ id: 'rec1', createdTime: '2026-10-15T00:00:00.000Z', fields: { Incident: 'INC1' } }],
   );
   assert.deepEqual(r.map((x) => x.number), ['INC2']);
 });

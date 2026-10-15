@@ -1,0 +1,166 @@
+{
+  "name": "Démo ITSM Jira — WF2b Publication du REX",
+  "nodes": [
+    {
+      "id": "774e00bc-9491-440b-ac23-62a8af76a447",
+      "name": "REX validé",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 5
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "tableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "triggerField": "Modifié le",
+        "additionalFields": {
+          "fields": "Incident,sys_id,Brouillon,Statut,Outil,Modifié le",
+          "formula": "AND({Statut}='Validé', {Outil}='Jira')"
+        }
+      }
+    },
+    {
+      "id": "fe550270-7466-457e-aea3-0d356b751870",
+      "name": "Ajouter le REX à l'incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://xavier-itsm.atlassian.net/rest/api/3/issue/{{ $json.fields['sys_id'] }}/comment",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: { type: 'doc', version: 1, content: ['REX validé (relu par un humain avant publication)', ...String($json.fields['Brouillon'] || '').split('\\n')].filter((l) => l.trim() !== '').map((l) => ({ type: 'paragraph', content: [{ type: 'text', text: l }] })) }, properties: [{ key: 'sd.public.comment', value: { internal: true } }] }) }}"
+      }
+    },
+    {
+      "id": "45a5e72a-ccc0-44fd-83a2-63814d3be75e",
+      "name": "Passer le REX à Publié",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "record",
+        "operation": "update",
+        "authentication": "airtableTokenApi",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appGM5SAo2IVhiUkU",
+          "cachedResultName": "Démo ITSM — incidents récurrents et REX"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblollIPidzA4Aflt",
+          "cachedResultName": "Brouillons REX"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $('REX validé').item.json.id }}",
+            "Statut": "Publié"
+          },
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "8c390b55-0a25-4836-84a0-47b9bd387d58",
+      "name": "Note WF2b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -300
+      ],
+      "parameters": {
+        "content": "## WF2b — Publication du REX (Jira)\nDéclenché quand un brouillon Jira passe à « Validé » dans Airtable (sondage toutes les 5 minutes).\n\n1. Ajoute le REX relu en commentaire interne du ticket (non visible du demandeur).\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nRien n'est écrit dans Jira sans validation humaine.",
+        "color": 4,
+        "width": 420,
+        "height": 260
+      }
+    }
+  ],
+  "connections": {
+    "REX validé": {
+      "main": [
+        [
+          {
+            "node": "Ajouter le REX à l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ajouter le REX à l'incident": {
+      "main": [
+        [
+          {
+            "node": "Passer le REX à Publié",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

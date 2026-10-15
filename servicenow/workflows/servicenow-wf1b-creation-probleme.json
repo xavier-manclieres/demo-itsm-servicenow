@@ -35,8 +35,8 @@
         },
         "triggerField": "Modifié le",
         "additionalFields": {
-          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut",
-          "formula": "AND({Statut}='Validé', {Problème}='')"
+          "fields": "Signature,Titre proposé,Hypothèse,Incidents,IDs incidents,Statut,Outil,Modifié le",
+          "formula": "AND({Statut}='Validé', {Problème}='', {Outil}='ServiceNow')"
         }
       }
     },
@@ -52,7 +52,7 @@
       "parameters": {
         "resource": "tableRecord",
         "operation": "create",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "tableName": "problem",
         "dataToSend": "columns",
         "fieldsToSend": {
@@ -96,7 +96,7 @@
       "parameters": {
         "resource": "tableRecord",
         "operation": "update",
-        "authentication": "basicAuth",
+        "authentication": "oAuth2",
         "tableName": "incident",
         "id": "={{ $json.incidentId }}",
         "dataToSend": "columns",
@@ -176,7 +176,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "options",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {
