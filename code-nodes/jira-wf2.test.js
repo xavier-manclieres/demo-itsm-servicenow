@@ -115,3 +115,69 @@ test('WF0b Jira : une seule étiquette, la catégorie (Jira trie les étiquettes
   const corps = noeud(lire(WF0B), "Créer l'incident P1").parameters.jsonBody;
   assert.match(corps, /labels: \["software"\]/);
 });
+
+// Brouillon au format produit par Claude (extrait réel du REX d'IT-91).
+const BROUILLON = [
+  '# REX – Incident IT-91 : ERP-PROD indisponible',
+  '',
+  '**Statut : brouillon à valider**',
+  '',
+  '## 1. Résumé',
+  'Le pool était **saturé** (500/500).',
+  'Cause probable : batch de clôture.',
+  '',
+  '## 3. Chronologie horodatée',
+  '| Heure | Événement |',
+  '|---|---|',
+  '| 09:02 | Alerte supervision |',
+  '| 09:50 | Incident résolu. |',
+  '',
+  '## 6. Actions préventives proposées',
+  '- Planifier le batch de clôture la nuit.',
+  '- Alerter à 80 % du pool.',
+  '',
+  '*Note : incident fictif.*',
+].join('\n');
+const metEnForme = (brouillon = BROUILLON) => executer(chargerCode(WF2B, 'Mettre en forme le REX'), {
+  input: [{ id: 'recA', createdTime: '2026-10-16T00:00:00.000Z', fields: { Incident: 'IT-91', sys_id: 'IT-91', Brouillon: brouillon, Statut: 'Validé', Outil: 'Jira' } }],
+});
+const textes = (n) => (n.text ? [n.text] : []).concat(...(n.content || []).map(textes));
+
+test('WF2b Jira : le REX publié est mis en forme (titres, tableau, liste, gras)', () => {
+  const [r] = metEnForme();
+  assert.equal(r.issueKey, 'IT-91');
+  assert.equal(r.recordId, 'recA');
+  const types = r.adf.content.map((b) => b.type);
+  assert.deepEqual(types, ['paragraph', 'heading', 'heading', 'paragraph', 'heading', 'table', 'heading', 'bulletList', 'paragraph']);
+  const tableau = r.adf.content.find((b) => b.type === 'table');
+  assert.equal(tableau.content.length, 3);
+  assert.equal(tableau.content[0].content[0].type, 'tableHeader');
+  assert.deepEqual(textes(tableau.content[2]), ['09:50', 'Incident résolu.']);
+  const resume = r.adf.content[3];
+  assert.ok(resume.content.some((n) => n.text === 'saturé' && n.marks[0].type === 'strong'));
+  assert.ok(resume.content.some((n) => n.type === 'hardBreak'));
+});
+
+test('WF2b Jira : la mention « brouillon » et la syntaxe Markdown disparaissent', () => {
+  const [r] = metEnForme();
+  const tout = textes(r.adf).join(' ');
+  assert.doesNotMatch(tout, /brouillon à valider/);
+  assert.doesNotMatch(tout, /\*\*|^#|\|---/m);
+  assert.match(tout, /REX validé \(relu par un humain avant publication\)/);
+});
+
+test('WF2b Jira : aucun nœud texte vide (refusé par Jira)', () => {
+  const [r] = metEnForme('# Titre\n\n|  | B |\n|---|---|\n| 1 |  |\n\n**gras**');
+  const vides = [];
+  const parcourir = (n) => { if (n.type === 'text' && !n.text) vides.push(n); (n.content || []).forEach(parcourir); };
+  parcourir(r.adf);
+  assert.equal(vides.length, 0);
+});
+
+test('WF2b Jira : le corps envoyé est le document mis en forme, en commentaire interne', () => {
+  const wf = lire(WF2B);
+  const http = noeud(wf, "Ajouter le REX à l'incident").parameters;
+  assert.match(http.url, /\$json\.issueKey/);
+  assert.match(http.jsonBody, /body: \$json\.adf/);
+  assert.deepEqual(wf.connections['REX validé'].main[0].map((c) => c.node), ['Mettre en forme le REX']);
+});

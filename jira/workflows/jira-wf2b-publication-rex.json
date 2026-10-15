@@ -41,22 +41,35 @@
       }
     },
     {
-      "id": "fe550270-7466-457e-aea3-0d356b751870",
-      "name": "Ajouter le REX à l'incident",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "1005229d-9cc8-417e-81df-21d2fd8fe3c6",
+      "name": "Mettre en forme le REX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         224,
         0
       ],
       "parameters": {
+        "jsCode": "// Convertit le brouillon validé (Markdown) en document ADF pour un commentaire Jira :\n// titres, gras, italique, code, listes à puces et numérotées, tableaux.\n// La mention « Statut : brouillon… » est retirée : le REX publié n'est plus un brouillon.\n\nfunction enLigne(texte) {\n  const noeuds = [];\n  const motif = /(\\*\\*([^*]+)\\*\\*|`([^`]+)`|\\*([^*\\s][^*]*)\\*|_([^_\\s][^_]*)_)/g;\n  let dernier = 0;\n  let m;\n  while ((m = motif.exec(texte)) !== null) {\n    if (m.index > dernier) noeuds.push({ type: 'text', text: texte.slice(dernier, m.index) });\n    if (m[2] !== undefined) noeuds.push({ type: 'text', text: m[2], marks: [{ type: 'strong' }] });\n    else if (m[3] !== undefined) noeuds.push({ type: 'text', text: m[3], marks: [{ type: 'code' }] });\n    else noeuds.push({ type: 'text', text: m[4] !== undefined ? m[4] : m[5], marks: [{ type: 'em' }] });\n    dernier = motif.lastIndex;\n  }\n  if (dernier < texte.length) noeuds.push({ type: 'text', text: texte.slice(dernier) });\n  return noeuds.filter((n) => n.text !== '');\n}\n\nconst paragraphe = (texte) => ({ type: 'paragraph', content: enLigne(texte) });\nconst cellules = (ligne) => ligne.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map((c) => c.trim());\nconst estSeparateur = (ligne) => /^\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?$/.test(ligne.trim());\n\nfunction versAdf(markdown) {\n  const lignes = String(markdown || '')\n    .replace(/\\r\\n?/g, '\\n')\n    .split('\\n')\n    .filter((l) => !/^\\s*\\**\\s*Statut\\s*:\\s*brouillon/i.test(l));\n  const blocs = [];\n  let i = 0;\n  while (i < lignes.length) {\n    const ligne = lignes[i];\n    const t = ligne.trim();\n    if (t === '' || /^(-{3,}|\\*{3,})$/.test(t)) { i += 1; continue; }\n\n    const titre = t.match(/^(#{1,6})\\s+(.*)$/);\n    if (titre) {\n      blocs.push({ type: 'heading', attrs: { level: Math.min(titre[1].length + 1, 6) }, content: enLigne(titre[2]) });\n      i += 1;\n      continue;\n    }\n\n    if (t.startsWith('|')) {\n      const rangees = [];\n      while (i < lignes.length && lignes[i].trim().startsWith('|')) {\n        if (!estSeparateur(lignes[i])) rangees.push(cellules(lignes[i]));\n        i += 1;\n      }\n      const largeur = Math.max(...rangees.map((r) => r.length));\n      blocs.push({\n        type: 'table',\n        attrs: { isNumberColumnEnabled: false, layout: 'default' },\n        content: rangees.map((r, n) => ({\n          type: 'tableRow',\n          content: Array.from({ length: largeur }, (_, k) => ({\n            type: n === 0 ? 'tableHeader' : 'tableCell',\n            attrs: {},\n            content: [paragraphe(r[k] || '')],\n          })),\n        })),\n      });\n      continue;\n    }\n\n    const puce = /^[-*+]\\s+/;\n    const numero = /^\\d+[.)]\\s+/;\n    if (puce.test(t) || numero.test(t)) {\n      const ordonnee = numero.test(t);\n      const motif = ordonnee ? numero : puce;\n      const elements = [];\n      while (i < lignes.length && motif.test(lignes[i].trim())) {\n        elements.push({ type: 'listItem', content: [paragraphe(lignes[i].trim().replace(motif, ''))] });\n        i += 1;\n      }\n      blocs.push({ type: ordonnee ? 'orderedList' : 'bulletList', content: elements });\n      continue;\n    }\n\n    // Paragraphe : lignes consécutives réunies, séparées par un retour à la ligne.\n    const contenu = [];\n    while (i < lignes.length) {\n      const l = lignes[i].trim();\n      if (l === '' || /^#{1,6}\\s/.test(l) || l.startsWith('|') || puce.test(l) || numero.test(l) || /^(-{3,}|\\*{3,})$/.test(l)) break;\n      if (contenu.length) contenu.push({ type: 'hardBreak' });\n      contenu.push(...enLigne(l));\n      i += 1;\n    }\n    blocs.push({ type: 'paragraph', content: contenu });\n  }\n  return blocs;\n}\n\nreturn $input.all().map((item, i) => {\n  const r = item.json;\n  const f = r.fields || r;\n  const entete = { type: 'paragraph', content: [{ type: 'text', text: 'REX validé (relu par un humain avant publication)', marks: [{ type: 'em' }] }] };\n  return {\n    json: {\n      recordId: r.id,\n      issueKey: f.sys_id || f.Incident,\n      adf: { type: 'doc', version: 1, content: [entete, ...versAdf(f.Brouillon)] },\n    },\n    pairedItem: { item: i },\n  };\n});"
+      }
+    },
+    {
+      "id": "fe550270-7466-457e-aea3-0d356b751870",
+      "name": "Ajouter le REX à l'incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
         "method": "POST",
-        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $json.fields['sys_id'] }}/comment",
+        "url": "=https://votre-site.atlassian.net/rest/api/3/issue/{{ $json.issueKey }}/comment",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "jiraSoftwareCloudApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ body: { type: 'doc', version: 1, content: ['REX validé (relu par un humain avant publication)', ...String($json.fields['Brouillon'] || '').split('\\n')].filter((l) => l.trim() !== '').map((l) => ({ type: 'paragraph', content: [{ type: 'text', text: l }] })) }, properties: [{ key: 'sd.public.comment', value: { internal: true } }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ body: $json.adf, properties: [{ key: 'sd.public.comment', value: { internal: true } }] }) }}"
       }
     },
     {
@@ -65,7 +78,7 @@
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 2.2,
       "position": [
-        448,
+        672,
         0
       ],
       "parameters": {
@@ -90,7 +103,7 @@
             "id"
           ],
           "value": {
-            "id": "={{ $('REX validé').item.json.id }}",
+            "id": "={{ $('Mettre en forme le REX').item.json.recordId }}",
             "Statut": "Publié"
           },
           "schema": [
@@ -129,15 +142,26 @@
         -300
       ],
       "parameters": {
-        "content": "## WF2b — Publication du REX (Jira)\nDéclenché quand un brouillon Jira passe à « Validé » dans Airtable (sondage toutes les 5 minutes).\n\n1. Ajoute le REX relu en commentaire interne du ticket (non visible du demandeur).\n2. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nRien n'est écrit dans Jira sans validation humaine.",
+        "content": "## WF2b — Publication du REX (Jira)\nDéclenché quand un brouillon Jira passe à « Validé » dans Airtable (sondage toutes les 5 minutes).\n\n1. Met en forme le REX relu (titres, gras, listes, tableau) et retire la mention « brouillon ».\n2. L'ajoute en commentaire interne du ticket (non visible du demandeur).\n3. Passe le brouillon à « Publié », ce qui l'empêche d'être republié.\n\nRien n'est écrit dans Jira sans validation humaine.",
         "color": 4,
-        "width": 420,
+        "width": 460,
         "height": 260
       }
     }
   ],
   "connections": {
     "REX validé": {
+      "main": [
+        [
+          {
+            "node": "Mettre en forme le REX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre en forme le REX": {
       "main": [
         [
           {

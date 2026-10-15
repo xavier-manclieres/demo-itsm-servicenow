@@ -13,11 +13,11 @@ Disponibles dans `workflows/`, tous testés sur le site Jira de la démo :
 | `jira-wf1-incidents-recurrents` | Regroupe les incidents récurrents, candidats dans Airtable (Outil = Jira) |
 | `jira-wf1b-creation-probleme` | Crée le ticket Problem et le lie aux incidents après validation |
 | `jira-wf2-brouillon-rex` | Brouillon de REX rédigé par Claude pour chaque P1 terminé |
-| `jira-wf2b-publication-rex` | Publie le REX validé en commentaire interne du ticket |
+| `jira-wf2b-publication-rex` | Met en forme le REX validé et le publie en commentaire interne du ticket |
 
 Points propres à Jira :
 
-- Les commentaires et descriptions sont au format ADF (Atlassian Document Format) : WF2 les convertit en texte avant de les envoyer à Claude, WF2b reconvertit le REX en paragraphes ADF.
+- Les commentaires et descriptions sont au format ADF (Atlassian Document Format) : WF2 les convertit en texte avant de les envoyer à Claude, WF2b reconvertit le REX (titres, gras, listes, tableau) en ADF et retire la mention « brouillon ».
 - Le workflow JSM de la démo ne renseigne pas la date de résolution : WF2 se base sur la date de passage à « Terminé » (`statusCategoryChangedDate`) et exclut les incidents « Annulé ».
 - Le REX publié est un commentaire interne (`sd.public.comment`), invisible du demandeur.
 
